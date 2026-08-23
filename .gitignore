@@ -1,0 +1,30 @@
+# Virtual Environment
+
+.venv/
+
+# Python cache and compiled
+__pycache__/
+*.py[cod]
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type checker and linter caches
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables and secrets
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+#Editors
+.vscode/
+.idea/
+
+# Python package metadata
+*.egg-info/
