@@ -4,13 +4,14 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D01 - engineering baseline
+Tahap saat ini: D02 - typed ingestion foundation.
 
 Fitur tersedia:
 
-- membaca header CSV;
-- menghitung jumlah baris dan CSV;
-- hasil bertipe melalui `CsvSummary`;
+- typed environment configuration;
+- validasi header dan struktur baris CSV;
+- domain exception untuk input yang invalid;
+- CLI untuk menjalankan CSV summary;
 - automated test dan static quality checks.
 
 ## Requirements
@@ -33,6 +34,38 @@ Install package dan development tools:
 python3 -m pip install -e ".[dev]"
 ```
 
+## Configuration
+
+```bash
+cp .env.example .env
+```
+
+muat konfigurasi ke terminal:
+
+```bash
+set -a
+source .env
+set +a
+```
+variabel yang tersedia:
+
+- `APP_ENV`: `development`, `test`, `production`.
+- `APP_DATA_DIR`: direktori penyimpanan file CSV.
+
+File `.env` tidak boleh masuk git. `.env.example` hanya berisi contoh aman.
+## Local Run
+
+```bash
+production-summary readings.csv
+```
+
+expected output:
+
+```text
+columns: asset_id,value
+rows: 2
+```
+
 ## Quality checks
 
 Jalankan seluruh pemeriksaan:
@@ -47,33 +80,33 @@ python3 -m mypy
 
 ```text
 .
+├── data/
+│   └── readings.csv
+├── docs/
+│   └── dev-log.md
 ├── src/
 │   └── production_app/
+│       ├── services/
+│       │   ├── __init__.py
+│       │   └── csv_summary.py
 │       ├── __init__.py
-│       └── csv_summary.py
+│       ├── cli.py
+│       ├── config.py
+│       └── exceptions.py
 ├── tests/
+│   ├── test_cli.py
+│   ├── test_config.py
 │   └── test_csv_summary.py
+├── .env.example
 ├── pyproject.toml
 └── README.md
 ```
 
-## Current CSV contract
+## CSV contract
 
-Input:
+CSV valid harus:
 
-```csv
-asset_id, value
-A-01,10
-A-02,20
-```
-
-Result"
-
-```python
-CsvSummary(
-    columns=("asset_id", "value"),
-    row_count=2,
-)
-```
-
-Validasi CSV kosong atau rusak akan ditambahkan pada tahap D02
+- memiliki header;
+- kolom tidak boleh kosong;
+- kolom tidak boleh duplicate;
+- row tidak kekurangan ataupun kelebihan value (sesuai jumlah header).
