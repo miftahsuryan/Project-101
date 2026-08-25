@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D02 - typed ingestion foundation.
+Tahap saat ini: D03 - versioned HTTP API.
 
 Fitur tersedia:
 
@@ -13,6 +13,10 @@ Fitur tersedia:
 - domain exception untuk input yang invalid;
 - CLI untuk menjalankan CSV summary;
 - automated test dan static quality checks.
+- Versioned FastAPI endpoint;
+- typed health response;
+- OpenAPI and swagger UI;
+
 
 ## Requirements
 
@@ -66,14 +70,43 @@ columns: asset_id,value
 rows: 2
 ```
 
+## HTTP API
+
+Jal;ankan development server:
+
+``` bash
+APP_ENV=development APP_DATA_DIR=./data\
+python3 -m uvicorn production_app.api.app:create_app\
+--factory\
+--reload\
+--host 127.0.0.1\
+--port 8000\
+```
+
+endpoint yang tersedia:
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/v1/health` | Memeriksa status aplikasi |
+| `GET` | `/openapi.json` | OpenAPI contract |
+| `GET` | `/docs` | Swagger UI |
+
+health response:
+
+```json
+{
+    "status": "ok",
+    "environtment": "development"
+}
+```
+
 ## Quality checks
 
 Jalankan seluruh pemeriksaan:
 
 ```bash
 python3 -m pytest
-python3 -m ruff check src tests
-python3 -m ruff format --check src tests
+python3 -m ruff check --no-cache src tests
+python3 -m ruff format --check --no-cache src tests
 python3 -m mypy
 ```
 ## Project structure
@@ -90,10 +123,17 @@ python3 -m mypy
 │       │   ├── __init__.py
 │       │   └── csv_summary.py
 │       ├── __init__.py
+│       ├──api/
+│       │   ├──routes/
+│       │   │    └── health.py
+│       │   ├── app.py
+│       │   └── schemas.py
 │       ├── cli.py
 │       ├── config.py
 │       └── exceptions.py
 ├── tests/
+│   ├──api/
+│   │    ├──test_health.py
 │   ├── test_cli.py
 │   ├── test_config.py
 │   └── test_csv_summary.py

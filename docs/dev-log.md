@@ -87,3 +87,57 @@ production-summary missing.csv
 - Belum tersedia database
 - Isi nilai CSV belum mempunyai domain schema
 - File `.env` belum dimuat otomatis oleh aplikasi
+
+## D03 - Versioned HTTP API
+
+## Objective
+
+membuat FastAPI application factory, versioned health endpoint, response chema, dan local HTTPP run path
+
+### Decisions
+
+- Menggunakan application factory `create_app()`
+- Menempatkan endpoint di bawah prefix `/api/v1`
+- Menggunakan Pydantic sebagao response schemma.
+_ Menggunakan router factory agar config diberikan secara eksplisit
+- Menggunakan Uvicorn sebagai ASGI development server.
+- Menggunakan `Testclient` dengan `httpx22` untuk API testing
+- Route tanpa version prefix harus menghasilkan `404`
+
+### Implemented
+
+- Package `production_app.api`
+- `HealthResponse` schema
+- `GET /api/v1/health`
+- OpenAPI contract di `/openapi.json`
+- Swagger UI di `/docs/`
+- Test sstatus code, JSON response, version coundary, dan OpenAPI schema
+
+### Verification
+
+```bash
+python3 -m pytest
+python3 -m ruff check --no-cache src tests
+python3 -m ruff format --check --no-cache src tests
+python3 -m mypy
+```
+
+manual HTTP verification:
+
+```bash
+curl -i http://127.0.0.1:8000/api/v1/health
+curl -i http://127.0.0.1:8000/health
+```
+
+expected behavior:
+- versioned health endpoint menghasilkan `200`
+- unversioned health endpoint menghasilkan `404`
+- health response mengikuti `HealthResponse`
+- OpenAPI mereferensikan schema `HealthResponse`
+
+### Known Limitations
+
+- health endpoint belum memeriksa database
+- belum tersedia global API error evelope
+- belum tersedia requst validation selain schema bawaan
+- Belum tersedia production domain endpoint
