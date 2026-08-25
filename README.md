@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D03 - versioned HTTP API.
+Tahap saat ini: D04 - production API contract.
 
 Fitur tersedia:
 
@@ -16,6 +16,11 @@ Fitur tersedia:
 - Versioned FastAPI endpoint;
 - typed health response;
 - OpenAPI and swagger UI;
+- prediction request dan response schema;
+- consistent API error envelope;
+- validation error `422`;
+- prediction domain error `409`;
+- OpenAPI success dan error contracts.
 
 
 ## Requirements
@@ -96,6 +101,61 @@ health response:
 {
     "status": "ok",
     "environtment": "development"
+}
+```
+## Prediction API
+
+Endpoint:
+
+```http
+POST /api/v1/predictions
+```
+
+Valid request:
+
+```json
+{
+  "asset_id": "A-01",
+  "readings": [10.0, 12.0]
+}
+```
+
+Success response — `200 OK`:
+
+```json
+{
+  "asset_id": "A-01",
+  "predicted_value": 0.0,
+  "model_version": "fake-v1"
+}
+```
+
+Validation error — `422 Unprocessable Content`:
+
+```json
+{
+  "error": {
+    "code": "validation_error",
+    "message": "Request validation failed.",
+    "details": [
+      {
+        "field": "asset_id",
+        "message": "Validation message"
+      }
+    ]
+  }
+}
+```
+
+Domain error — `409 Conflict`:
+
+```json
+{
+  "error": {
+    "code": "prediction_unavailable",
+    "message": "Prediction is unavailable for asset 'A-404'.",
+    "details": []
+  }
 }
 ```
 

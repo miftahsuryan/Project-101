@@ -141,3 +141,53 @@ expected behavior:
 - belum tersedia global API error evelope
 - belum tersedia requst validation selain schema bawaan
 - Belum tersedia production domain endpoint
+
+## D04 - Production API contract
+
+### Objective
+
+Mendefinisikan typed prediction API contract, request validation, cosistent error envelope, dan fake prediction service.
+
+### Decisions
+
+- Menggunakan Pydantic untuk request dan response schema.
+- MEnggunakan 'ErrorResponse' untuk validation dan domain errors.
+- Request schema invalid menghasilkan status `422`.
+- Request schema invalid menghasilkan status `409`.
+- `RequestValidationError` diterjemahkkan global exception handler.
+- Domain exception dipisahkan dari API response schema.
+- Runtime handler dan OpenAPI response documentation didefinisikan terpisah
+
+### Implemented
+
+- `PredictionRequest` dan `PredictionResponse`.
+- `ErrorDetail`, `ErrorBody`, dan `ErrorResponse`.
+- Fake prediction service.
+- `POST /api/v1/predictions`.
+- Global request-validation handler.
+- `PredictionUnvailableError` handler.
+- OpenAPI contracts untuk status `200`, `409`, dan `422`.
+
+### Verification
+
+```bash
+python3 -m pytest
+python3 -m ruff check --no-cache src tests
+python3 -m ruff format --check --no-cache src tests
+python3 -m mypy
+```
+
+Expected Result:
+
+- valid prediction request menghasil;kan `200`;
+- invalid request schema menghasilkan `4212`;
+- unavailable prediction menghasilkan `409`;
+- seluruh error memakai top-level key `error`;
+- openAPI menggunakan `ErrorResponse` untuk status `409`dan `422`.
+
+### Known Limitations
+
+- Prediction service masih menghasilkan canned value `0.0`
+- aset dan reading belum disimpan
+- belum tersedia CRUD asset
+- belum terseda databse repository

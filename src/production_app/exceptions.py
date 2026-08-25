@@ -7,4 +7,12 @@ class CsvIngestionError(ProductionAppError):
 
 
 class ConfigError(ProductionAppError):
-    """Raised when configguration is invalid"""
+    """Raised when application configuration is invalid."""
+
+
+class PredictionUnavailableError(ProductionAppError):
+    """Raised when a prediction cannot be produced."""
+
+    def __init__(self, asset_id: str) -> None:
+        self.asset_id = asset_id
+        super().__init__(f"Prediction is unavailable for asset {asset_id!r}.")
