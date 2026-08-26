@@ -7,7 +7,11 @@ from production_app.api.schemas import (
     ErrorDetail,
     ErrorResponse,
 )
-from production_app.exceptions import PredictionUnavailableError
+from production_app.exceptions import (
+    AssetCodeAlreadyExistsError,
+    AssetNotFoundError,
+    PredictionUnavailableError,
+)
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -45,6 +49,42 @@ def register_exception_handlers(app: FastAPI) -> None:
         response = ErrorResponse(
             error=ErrorBody(
                 code="prediction_unavailable",
+                message=str(error),
+                details=[],
+            )
+        )
+
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=response.model_dump(),
+        )
+
+    @app.exception_handler(AssetNotFoundError)
+    async def handle_asset_not_found_error(
+        _request: Request,
+        error: AssetNotFoundError,
+    ) -> JSONResponse:
+        response = ErrorResponse(
+            error=ErrorBody(
+                code="asset_not_found",
+                message=str(error),
+                details=[],
+            )
+        )
+
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=response.model_dump(),
+        )
+
+    @app.exception_handler(AssetCodeAlreadyExistsError)
+    async def handle_asset_code_conflict(
+        _request: Request,
+        error: AssetCodeAlreadyExistsError,
+    ) -> JSONResponse:
+        response = ErrorResponse(
+            error=ErrorBody(
+                code="asset_code_conflict",
                 message=str(error),
                 details=[],
             )

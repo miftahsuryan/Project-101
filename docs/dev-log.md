@@ -191,3 +191,99 @@ Expected Result:
 - aset dan reading belum disimpan
 - belum tersedia CRUD asset
 - belum terseda databse repository
+
+
+## D05 - Production service boundary
+
+### Objective
+
+Membangun CRUD asset berbasis in-memory service, memisahkan domain dari HTTP,
+dan mendefinisikan rancangan relasional awal untuk asset, reading, dan
+prediction.
+
+### Decisions
+
+- Menggunakan immutable domain entity `Asset` berbasis frozen dataclass.
+- Menggunakan UUID sebagai identifier internal asset.
+- Menggunakan `asset_code` sebagai unique business identifier.
+- Menempatkan aturan bisnis CRUD pada `InMemoryAssetService`.
+- Menggunakan primary dictionary untuk pencarian berdasarkan UUID.
+- Menggunakan secondary index untuk menjaga keunikan `asset_code`.
+- Menggunakan router factory agar satu service instance dapat diberikan secara
+  eksplisit kepada seluruh asset routes.
+- Menerjemahkan domain exception menjadi HTTP error envelope melalui global
+  exception handlers.
+- Menggunakan `204 No Content` untuk penghapusan yang berhasil.
+- Mendefinisikan ERD v0 sebelum membuat database schema dan migrations.
+
+### Implemented
+
+- Immutable `Asset` domain entity.
+- `InMemoryAssetService` dengan operasi create, list, get, update, dan delete.
+- `AssetNotFoundError`.
+- `AssetCodeAlreadyExistsError`.
+- Pydantic schemas `AssetCreate`, `AssetUpdate`, dan `AssetResponse`.
+- `POST /api/v1/assets`.
+- `GET /api/v1/assets`.
+- `GET /api/v1/assets/{asset_id}`.
+- `PUT /api/v1/assets/{asset_id}`.
+- `DELETE /api/v1/assets/{asset_id}`.
+- Error responses konsisten untuk status `404`, `409`, dan `422`.
+- OpenAPI documentation untuk asset CRUD.
+- Service tests dan API tests untuk happy path serta invalid path.
+- ERD v0 pada `docs/erd-v0.md`.
+
+### HTTP contract
+
+| Method | Path | Success | Error |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/assets` | `201` | `409`, `422` |
+| `GET` | `/api/v1/assets` | `200` | - |
+| `GET` | `/api/v1/assets/{asset_id}` | `200` | `404`, `422` |
+| `PUT` | `/api/v1/assets/{asset_id}` | `200` | `404`, `409`, `422` |
+| `DELETE` | `/api/v1/assets/{asset_id}` | `204` | `404`, `422` |
+
+### Verification
+
+```bash
+python3 -m pytest
+python3 -m ruff check --no-cache src tests
+python3 -m ruff format --check --no-cache src tests
+python3 -m mypy
+git diff --check
+```
+
+Expected result:
+
+- Seluruh 41 tests lulus.
+- Ruff tidak menemukan lint error.
+- Seluruh source dan test files sudah terformat.
+- Mypy tidak menemukan typing issue.
+- Create, read, update, dan delete happy paths lulus.
+- Duplicate `asset_code` menghasilkan `409`.
+- Missing asset menghasilkan `404`.
+- Invalid UUID dan invalid request menghasilkan `422`.
+- Successful delete menghasilkan `204` tanpa response body.
+
+### Relational design
+
+ERD v0 mendefinisikan hubungan berikut:
+
+- Satu asset dapat memiliki banyak readings.
+- Satu asset dapat memiliki banyak predictions.
+- Reading dan prediction mereferensikan UUID internal asset.
+- Penghapusan asset yang masih memiliki data terkait direncanakan menggunakan
+  `ON DELETE RESTRICT`.
+
+Detail rancangan tersedia di [`erd-v0.md`](erd-v0.md).
+
+### Known limitations
+
+- Data asset masih disimpan dalam memory dan hilang ketika aplikasi restart.
+- Service belum menggunakan repository interface.
+- PostgreSQL connection dan database session belum tersedia.
+- List assets belum memiliki pagination dan filtering.
+- Reading dan prediction belum disimpan.
+- Prediction API masih memakai string `asset_id` yang belum selaras dengan UUID
+  internal pada domain asset.
+- Database constraints dan transaction boundaries belum diterapkan.
