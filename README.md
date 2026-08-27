@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D05 - production service boundary.
+Tahap saat ini: D06 - API behavior coverage and database foundation.
 
 Fitur tersedia:
 
@@ -28,12 +28,21 @@ Fitur tersedia:
 - consistent `404`, `409`, dan `422` error responses;
 - Asset CRUD OpenAPI documentation;
 - relational design awal pada ERD v0.
+- exact-match Asset filtering;
+- limit/offset pagination dengan validation;
+- repository interface dan dependency injection;
+- in-memory repository adapter;
+- typed PostgreSQL configuration;
+- PostgreSQL local service melalui Docker Compose;
+- Psycopg database connectivity smoke test;
+- database ADR dan manual API collection.
 
 
 ## Requirements
 
 - Python 3.12 atau yang lebih baru
 - Git
+- Docker Desktop atau Docker Engine dengan Docker Compose
 
 ## Setup
 
@@ -82,9 +91,14 @@ columns: asset_id,value
 rows: 2
 ```
 
+- `APP_DATABASE_URL`: PostgreSQL connection string opsional.
+
+Jika `APP_DATABASE_URL` tidak tersedia, database integration test akan di-skip.
+Runtime Asset API saat ini masih menggunakan in-memory repository.
+
 ## HTTP API
 
-Jal;ankan development server:
+Jalankan development server:
 
 ``` bash
 APP_ENV=development APP_DATA_DIR=./data\
@@ -117,6 +131,53 @@ health response:
     "environtment": "development"
 }
 ```
+## Local PostgreSQL
+
+Jalankan PostgreSQL:
+
+```bash
+docker compose up -d postgres
+```
+
+Periksa health status:
+
+```bash
+docker compose ps
+```
+
+Service harus menampilkan status `healthy`.
+
+Periksa database secara langsung:
+
+```bash
+docker compose exec postgres \
+  psql \
+  -U production_app \
+  -d production_app \
+  -c "SELECT current_database(), current_user;"
+```
+
+Jalankan Python database smoke test:
+
+```bash
+set -a
+source .env
+set +a
+
+python3 -m pytest \
+  tests/integration/test_database_connection.py \
+  -v
+```
+
+Hentikan PostgreSQL tanpa menghapus data:
+
+```bash
+docker compose stop postgres
+```
+
+Named volume `postgres_data` menyimpan data ketika container dihentikan atau
+dibuat ulang. Hindari `docker compose down -v` kecuali memang ingin menghapus
+seluruh database lokal.
 
 ## Asset API
 
@@ -155,6 +216,25 @@ List assets:
 ```http
 GET /api/v1/assets
 ```
+Filter menggunakan exact-match `asset_code`:
+
+```http
+GET /api/v1/assets?asset_code=PUMP-01
+```
+
+Pagination menggunakan `limit` dan `offset`:
+
+```http
+GET /api/v1/assets?limit=20&offset=0
+```
+
+| Parameter | Default | Constraint |
+| --- | --- | --- |
+| `asset_code` | null | exact match |
+| `limit` | `20` | minimum `1`, maximum `100` |
+| `offset` | `0` | minimum `0` |
+
+Nilai pagination yang tidak valid menghasilkan `422 Unprocessable Content`.
 
 Update asset:
 
@@ -255,7 +335,33 @@ python3 -m pytest
 python3 -m ruff check --no-cache src tests
 python3 -m ruff format --check --no-cache src tests
 python3 -m mypy
+git diff --check
 ```
+
+Dengan PostgreSQL aktif dan `.env` termuat:
+
+```text
+70 passed
+```
+
+Tanpa `APP_DATABASE_URL`:
+
+```text
+69 passed, 1 skipped
+```
+
+Jalankan hanya unit/API tests tanpa integration test:
+
+```bash
+python3 -m pytest -m "not integration"
+```
+
+Jalankan database integration test:
+
+```bash
+python3 -m pytest -m integration -v
+```
+
 ## Project structure
 
 ```text
@@ -263,6 +369,10 @@ python3 -m mypy
 ├── data/
 │   └── readings.csv
 ├── docs/
+│   ├── adr/
+│   │   └── 0001-postgresql-foundation.md
+│   ├── http/
+│   │   └── api.http
 │   ├── dev-log.md
 │   └── erd-v0.md
 ├── src/
@@ -275,8 +385,13 @@ python3 -m mypy
 │       │   ├── app.py
 │       │   ├── error_handlers.py
 │       │   └── schemas.py
+│       ├── database/
+│       │   └── connection.py
 │       ├── domain/
 │       │   └── entities.py
+│       ├── repositories/
+│       │   ├── assets_repo.py
+│       │   └── in_memory_assets.py
 │       ├── services/
 │       │   ├── assets.py
 │       │   ├── csv_summary.py
@@ -289,12 +404,18 @@ python3 -m mypy
 │   │   ├── test_assets_api.py
 │   │   ├── test_health.py
 │   │   └── test_predictions.py
+│   ├── integration/
+│   │   └── test_database_connection.py
+│   ├── repositories/
+│   │   └── test_in_memory_assets.py
 │   ├── services/
+│   │   ├── test_asset_service_repository.py
 │   │   └── test_assets.py
 │   ├── test_cli.py
 │   ├── test_config.py
 │   └── test_csv_summary.py
 ├── .env.example
+├── compose.yaml
 ├── pyproject.toml
 └── README.md
 ```

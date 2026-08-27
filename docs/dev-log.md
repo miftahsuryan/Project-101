@@ -287,3 +287,182 @@ Detail rancangan tersedia di [`erd-v0.md`](erd-v0.md).
 - Prediction API masih memakai string `asset_id` yang belum selaras dengan UUID
   internal pada domain asset.
 - Database constraints dan transaction boundaries belum diterapkan.
+
+
+## D06 - API behavior coverage and database foundation
+
+### Objective
+
+Menambahkan filter dan pagination pada Asset API, memisahkan service dari
+persistence implementation, serta menyiapkan koneksi PostgreSQL yang dapat
+diverifikasi melalui integration smoke test.
+
+### Decisions
+
+- Filter `asset_code` menggunakan exact match.
+- List assets menggunakan offset-based pagination.
+- Default `limit` adalah `20` dengan maksimum `100`.
+- Default `offset` adalah `0` dan tidak boleh negatif.
+- Route bergantung pada `AssetService`, bukan repository.
+- `AssetService` bergantung pada `AssetRepository` Protocol.
+- Dictionary storage dipindahkan ke `InMemoryAssetRepository`.
+- PostgreSQL 17 dijalankan melalui Docker Compose.
+- Psycopg 3 digunakan sebagai PostgreSQL driver.
+- Database connection string dibaca dari `APP_DATABASE_URL`.
+- `APP_DATABASE_URL` bersifat opsional selama runtime masih menggunakan
+  in-memory repository.
+- Database integration tests menggunakan marker `integration`.
+- Schema tidak dibuat otomatis saat application startup.
+- Versioned schema migrations ditunda sampai D09.
+
+### Implemented
+
+- Exact-match filtering pada `GET /api/v1/assets`.
+- Pagination dengan query parameters `limit` dan `offset`.
+- Runtime validation untuk pagination parameters.
+- OpenAPI documentation untuk filter, pagination, dan `422 ErrorResponse`.
+- `AssetRepository` Protocol.
+- `InMemoryAssetRepository`.
+- Constructor injection pada `AssetService`.
+- Pemisahan business rules dari dictionary storage.
+- PostgreSQL configuration melalui `APP_DATABASE_URL`.
+- Validation untuk PostgreSQL URL.
+- PostgreSQL 17 local service pada `compose.yaml`.
+- Persistent PostgreSQL named volume.
+- PostgreSQL container health check.
+- Psycopg 3 binary dependency.
+- `ping_database()` dengan query `SELECT 1`.
+- PostgreSQL integration smoke test.
+- Database architecture decision record.
+- Manual API collection pada `docs/http/api.http`.
+
+### Dependency direction
+
+```text
+FastAPI route
+    → AssetService
+        → AssetRepository Protocol
+            ← InMemoryAssetRepository
+            ← PostgreSQL repository (planned D08)
+```
+
+Business rules tetap berada pada service:
+
+- missing asset menghasilkan `AssetNotFoundError`;
+- duplicate asset code menghasilkan `AssetCodeAlreadyExistsError`;
+- update mempertahankan UUID;
+- delete memastikan asset tersedia sebelum repository dipanggil.
+
+Persistence behavior berada pada repository:
+
+- menyimpan dan mengambil entity;
+- menjaga primary dan secondary indexes;
+- menerapkan filter dan pagination;
+- mengganti dan menghapus persisted entity.
+
+### API query contract
+
+| Parameter | Type | Default | Constraint |
+| --- | --- | --- | --- |
+| `asset_code` | string or null | null | exact match |
+| `limit` | integer | `20` | minimum `1`, maximum `100` |
+| `offset` | integer | `0` | minimum `0` |
+
+Examples:
+
+```http
+GET /api/v1/assets?asset_code=PUMP-01
+GET /api/v1/assets?limit=20&offset=0
+```
+
+Invalid pagination menghasilkan `422` menggunakan standard `ErrorResponse`
+envelope.
+
+### Database configuration
+
+Local development URL:
+
+```text
+postgresql://production_app:production_app@localhost:5432/production_app
+```
+
+URL disediakan melalui environment variable dan tidak boleh dicetak ke log
+karena dapat mengandung credentials.
+
+Start PostgreSQL:
+
+```bash
+docker compose up -d postgres
+docker compose ps
+```
+
+Manual database query:
+
+```bash
+docker compose exec postgres \
+  psql \
+  -U production_app \
+  -d production_app \
+  -c "SELECT current_database(), current_user;"
+```
+
+### Verification
+
+Unit and API quality gate:
+
+```bash
+python3 -m pytest
+python3 -m ruff check --no-cache src tests
+python3 -m ruff format --check --no-cache src tests
+python3 -m mypy
+git diff --check
+```
+
+Explicit database smoke test:
+
+```bash
+set -a
+source .env
+set +a
+
+python3 -m pytest \
+  tests/integration/test_database_connection.py \
+  -v
+```
+
+Expected result with PostgreSQL configured:
+
+```text
+70 passed
+All checks passed!
+Success: no issues found
+```
+
+Without `APP_DATABASE_URL`, the database integration test di-skip dan unit
+suite tetap dapat dijalankan:
+
+```text
+69 passed, 1 skipped
+```
+
+### Deliverables
+
+- API filter and pagination tests.
+- Repository interface and in-memory adapter.
+- Typed database configuration.
+- PostgreSQL Docker Compose service.
+- Database connectivity smoke test.
+- ADR `docs/adr/0001-postgresql-foundation.md`.
+- API collection `docs/http/api.http`.
+
+### Known limitations
+
+- Runtime Asset API masih menggunakan `InMemoryAssetRepository`.
+- Asset data belum dipersist ke PostgreSQL.
+- PostgreSQL repository belum tersedia.
+- Connection/session belum menggunakan request-scoped dependency.
+- Connection pooling belum tersedia.
+- Transaction boundary baru didokumentasikan dan belum diterapkan ke CRUD.
+- Database tables dan constraints belum dibuat.
+- Alembic migrations belum tersedia.
+- Offset pagination belum memiliki metadata seperti total row atau next page.

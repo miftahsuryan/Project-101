@@ -1,0 +1,96 @@
+@apiUrl = http://127.0.0.1:8000/api/v1
+@assetId = REPLACE_WITH_CREATED_ASSET_UUID
+
+### Health check — expected 200
+GET {{apiUrl}}/health
+Accept: application/json
+
+### Create asset — expected 201
+POST {{apiUrl}}/assets
+Content-Type: application/json
+Accept: application/json
+
+{
+  "asset_code": "PUMP-01",
+  "name": "Main Pump"
+}
+
+### Duplicate asset code — expected 409
+POST {{apiUrl}}/assets
+Content-Type: application/json
+Accept: application/json
+
+{
+  "asset_code": "PUMP-01",
+  "name": "Duplicate Pump"
+}
+
+### List assets — expected 200
+GET {{apiUrl}}/assets
+Accept: application/json
+
+### Filter by exact asset code — expected 200
+GET {{apiUrl}}/assets?asset_code=PUMP-01
+Accept: application/json
+
+### Pagination — expected 200
+GET {{apiUrl}}/assets?limit=2&offset=0
+Accept: application/json
+
+### Invalid limit — expected 422
+GET {{apiUrl}}/assets?limit=0
+Accept: application/json
+
+### Invalid offset — expected 422
+GET {{apiUrl}}/assets?offset=-1
+Accept: application/json
+
+### Get asset detail — expected 200 after replacing assetId
+GET {{apiUrl}}/assets/{{assetId}}
+Accept: application/json
+
+### Update asset — expected 200 after replacing assetId
+PUT {{apiUrl}}/assets/{{assetId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "asset_code": "PUMP-02",
+  "name": "Backup Pump"
+}
+
+### Delete asset — expected 204 after replacing assetId
+DELETE {{apiUrl}}/assets/{{assetId}}
+Accept: application/json
+
+### Get deleted asset — expected 404
+GET {{apiUrl}}/assets/{{assetId}}
+Accept: application/json
+
+### Invalid UUID — expected 422
+GET {{apiUrl}}/assets/not-a-uuid
+Accept: application/json
+
+### Fake prediction — expected 200
+POST {{apiUrl}}/predictions
+Content-Type: application/json
+Accept: application/json
+
+{
+  "asset_id": "A-01",
+  "readings": [10.0, 12.0]
+}
+
+### Prediction unavailable — expected 409
+POST {{apiUrl}}/predictions
+Content-Type: application/json
+Accept: application/json
+
+{
+  "asset_id": "A-404",
+  "readings": [10.0, 12.0]
+}
+
+### OpenAPI schema — expected 200
+GET http://127.0.0.1:8000/openapi.json
+Accept: application/json
