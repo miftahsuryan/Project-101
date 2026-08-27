@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Query, Response, status
 
 from production_app.api.schemas import (
     AssetCreate,
@@ -9,7 +10,7 @@ from production_app.api.schemas import (
     ErrorResponse,
 )
 from production_app.domain.entities import Asset
-from production_app.services.assets import InMemoryAssetService
+from production_app.services.assets import AssetService
 
 
 def _to_response(asset: Asset) -> AssetResponse:
@@ -20,7 +21,7 @@ def _to_response(asset: Asset) -> AssetResponse:
     )
 
 
-def create_assets_router(service: InMemoryAssetService) -> APIRouter:
+def create_assets_router(service: AssetService) -> APIRouter:
     router = APIRouter(
         prefix="/assets",
         tags=["assets"],
@@ -52,9 +53,31 @@ def create_assets_router(service: InMemoryAssetService) -> APIRouter:
         "",
         response_model=list[AssetResponse],
         status_code=status.HTTP_200_OK,
+        responses={
+            status.HTTP_422_UNPROCESSABLE_CONTENT: {
+                "model": ErrorResponse,
+                "description": "Pagination parameters are invalid.",
+            },
+        },
     )
-    def list_assets() -> list[AssetResponse]:
-        return [_to_response(asset) for asset in service.list_assets()]
+    def list_assets(
+        asset_code: str | None = None,
+        limit: Annotated[
+            int,
+            Query(ge=1, le=100),
+        ] = 20,
+        offset: Annotated[
+            int,
+            Query(ge=0),
+        ] = 0,
+    ) -> list[AssetResponse]:
+        assets = service.list_assets(
+            asset_code=asset_code,
+            limit=limit,
+            offset=offset,
+        )
+
+        return [_to_response(asset) for asset in assets]
 
     @router.get(
         "/{asset_id}",

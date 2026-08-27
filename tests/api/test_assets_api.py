@@ -324,3 +324,154 @@ def test_delete_asset_documents_http_contract(
     assert responses["422"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/ErrorResponse"
     }
+
+
+def test_list_assets_filters_by_asset_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+
+    with TestClient(create_app()) as client:
+        first_response = client.post(
+            "/api/v1/assets",
+            json={
+                "asset_code": "PUMP-01",
+                "name": "Main Pump",
+            },
+        )
+
+        second_response = client.post(
+            "/api/v1/assets",
+            json={
+                "asset_code": "VALVE-01",
+                "name": "Intake Valve",
+            },
+        )
+
+        list_response = client.get(
+            "/api/v1/assets",
+            params={"asset_code": "PUMP-01"},
+        )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+    assert list_response.status_code == 200
+    assert list_response.json() == [first_response.json()]
+
+
+def test_list_assets_applies_limit_and_offset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+
+    created_assets: list[dict[str, object]] = []
+
+    with TestClient(create_app()) as client:
+        for number in range(1, 4):
+            create_response = client.post(
+                "/api/v1/assets",
+                json={
+                    "asset_code": f"PUMP-{number:02}",
+                    "name": f"Pump {number}",
+                },
+            )
+
+            assert create_response.status_code == 201
+            created_assets.append(create_response.json())
+
+        list_response = client.get(
+            "/api/v1/assets",
+            params={
+                "limit": 2,
+                "offset": 1,
+            },
+        )
+
+    assert list_response.status_code == 200
+    assert list_response.json() == created_assets[1:3]
+
+
+@pytest.mark.parametrize(
+    ("params", "invalid_field"),
+    [
+        pytest.param(
+            {"limit": 0},
+            "query.limit",
+            id="limit-too-small",
+        ),
+        pytest.param(
+            {"limit": 101},
+            "query.limit",
+            id="limit-too-large",
+        ),
+        pytest.param(
+            {"offset": -1},
+            "query.offset",
+            id="offset-negative",
+        ),
+    ],
+)
+def test_list_assets_rejects_invalid_pagination(
+    monkeypatch: pytest.MonkeyPatch,
+    params: dict[str, int],
+    invalid_field: str,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/v1/assets",
+            params=params,
+        )
+
+    assert response.status_code == 422
+
+    error = response.json()["error"]
+
+    assert error["code"] == "validation_error"
+    assert error["message"] == "Request validation failed."
+
+    invalid_fields = {detail["field"] for detail in error["details"]}
+
+    assert invalid_fields == {invalid_field}
+
+
+def test_list_assets_documents_pagination_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+
+    with TestClient(create_app()) as client:
+        response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+
+    openapi_schema = response.json()
+    list_operation = openapi_schema["paths"]["/api/v1/assets"]["get"]
+
+    parameters = {
+        parameter["name"]: parameter for parameter in list_operation["parameters"]
+    }
+
+    assert set(parameters) == {
+        "asset_code",
+        "limit",
+        "offset",
+    }
+
+    limit_schema = parameters["limit"]["schema"]
+
+    assert limit_schema["minimum"] == 1
+    assert limit_schema["maximum"] == 100
+    assert limit_schema["default"] == 20
+
+    offset_schema = parameters["offset"]["schema"]
+
+    assert offset_schema["minimum"] == 0
+    assert offset_schema["default"] == 0
+
+    validation_schema = list_operation["responses"]["422"]["content"][
+        "application/json"
+    ]["schema"]
+
+    assert validation_schema == {"$ref": "#/components/schemas/ErrorResponse"}
