@@ -466,3 +466,95 @@ suite tetap dapat dijalankan:
 - Database tables dan constraints belum dibuat.
 - Alembic migrations belum tersedia.
 - Offset pagination belum memiliki metadata seperti total row atau next page.
+
+## D07 - Milestone v0.1 vertical slice
+
+### Objective
+
+Membuktikan satu alur MVP dari browser menuju FastAPI, PostgreSQL, dan kembali ke browser dengan deterministic prediction stub.
+
+### Decisions
+
+- Frontend menggunakan Next.js 16, TypeScript, App Router, dan Tailwind CSS.
+- Static page tetap menjadi Server Component.
+- Form dan persisted list menjadi Client Components karena membutuhkan state,
+  event handler, dan browser-side fetch.
+- Kontrak frontend ditulis manual berdasarkan schema dan contract test FastAPI.
+- CORS origin dibaca dari `APP_CORS_ORIGINS`.
+- Environment `test` tetap menggunakan in-memory repository agar test cepat
+  dan terisolasi.
+- Runtime development menggunakan PostgreSQL ketika `APP_DATABASE_URL`
+  tersedia.
+- Bootstrap schema D07 bersifat sementara sampai digantikan Alembic pada D09.
+
+### Implemented
+
+- Next.js application pada folder `web/`.
+- Typed Asset dan Prediction API client.
+- Form dengan idle, loading, success, dan error states.
+- Deterministic prediction response menggunakan model `fake-v1`.
+- Configurable CORS middleware.
+- PostgreSQL Asset table bootstrap.
+- `PostgresAssetRepository`.
+- Composition root untuk memilih repository.
+- Persisted Asset list pada frontend.
+- Integration test yang membuat ulang application instance.
+- Frontend lint, type-check, dan production build quality gate.
+
+### Vertical slice
+
+```text
+Next.js form
+    → typed API client
+        → FastAPI route
+            → AssetService
+                → AssetRepository Protocol
+                    → PostgreSQL adapter
+                        → persisted Asset row
+
+FastAPI prediction route
+    → deterministic fake-v1 prediction
+        → React success state
+```
+### Verification
+
+Backend:
+
+```bash
+python3 -m pytest -m "not integration"
+python3 -m ruff check .
+python3 -m mypy
+```
+PostgreSQL integration:
+```bash
+set -a
+source .env
+set +a
+
+python3 -m pytest tests/integration -v
+```
+
+Frontend:
+```bash
+cd web
+npm run check
+```
+### Retrospective
+- Origin frontend dan backend yang berbeda membutuhkan kontrak CORS eksplisit.
+- Repository Protocol membuat service dapat berpindah dari memory ke PostgreSQL
+  tanpa mengubah business rules.
+- Membuat ulang application instance adalah cara sederhana untuk membuktikan
+  persistence.
+- Discriminated union mencegah kombinasi UI state yang tidak valid.
+- Quality gate frontend dan backend perlu dijalankan secara terpisah dalam
+  monorepo.
+
+### Known limitations
+- Setiap operasi repository membuka koneksi PostgreSQL baru.
+- Belum tersedia connection pooling atau request-scoped lifecycle.
+- Schema masih dibuat oleh bootstrap function, belum melalui Alembic.
+- Prediction belum disimpan ke database.
+- Persisted list diperbarui ketika halaman dimuat ulang.
+- TypeScript API contract masih disinkronkan secara manual.
+- Belum tersedia automated component test untuk frontend.
+

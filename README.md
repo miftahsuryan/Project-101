@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D06 - API behavior coverage and database foundation.
+Tahap saat ini: D07 - Milestone v0.1 vertical slice.
 
 Fitur tersedia:
 
@@ -36,6 +36,15 @@ Fitur tersedia:
 - PostgreSQL local service melalui Docker Compose;
 - Psycopg database connectivity smoke test;
 - database ADR dan manual API collection.
+- Next.js 16 frontend dengan TypeScript dan App Router;
+- typed frontend API client;
+- interactive Asset dan Prediction form;
+- explicit loading, success, dan error states;
+- configurable CORS origins;
+- PostgreSQL Asset repository;
+- persisted Asset list;
+- deterministic prediction stub;
+- frontend lint, type-check, dan production build gates.
 
 
 ## Requirements
@@ -43,6 +52,8 @@ Fitur tersedia:
 - Python 3.12 atau yang lebih baru
 - Git
 - Docker Desktop atau Docker Engine dengan Docker Compose
+- Node.js 20.9 atau yang lebih baru
+- npm
 
 ## Setup
 
@@ -59,6 +70,15 @@ Install package dan development tools:
 python3 -m pip install -e ".[dev]"
 ```
 
+Install frontend dependencies:
+
+```bash
+cd web
+npm install
+cp .env.example .env.local
+cd ..
+```
+
 ## Configuration
 
 ```bash
@@ -72,12 +92,20 @@ set -a
 source .env
 set +a
 ```
-variabel yang tersedia:
+Variabel backend:
 
-- `APP_ENV`: `development`, `test`, `production`.
+- `APP_ENV`: `development`, `test`, atau `production`.
 - `APP_DATA_DIR`: direktori penyimpanan file CSV.
+- `APP_DATABASE_URL`: PostgreSQL connection string.
+- `APP_CORS_ORIGINS`: daftar origin frontend yang dipisahkan koma.
 
-File `.env` tidak boleh masuk git. `.env.example` hanya berisi contoh aman.
+Variabel frontend dalam `web/.env.local`:
+
+- `NEXT_PUBLIC_API_BASE_URL`: alamat FastAPI yang digunakan browser.
+
+File `.env` dan `web/.env.local` tidak boleh masuk Git. File `.env.example`
+hanya berisi contoh konfigurasi aman.
+
 ## Local Run
 
 ```bash
@@ -91,22 +119,25 @@ columns: asset_id,value
 rows: 2
 ```
 
-- `APP_DATABASE_URL`: PostgreSQL connection string opsional.
-
-Jika `APP_DATABASE_URL` tidak tersedia, database integration test akan di-skip.
-Runtime Asset API saat ini masih menggunakan in-memory repository.
+Jika `APP_DATABASE_URL` tidak tersedia, database integration test akan
+di-skip. Pada environment selain `test`, Asset API menggunakan PostgreSQL
+jika `APP_DATABASE_URL` tersedia. Environment `test` tetap menggunakan
+in-memory repository agar unit dan API tests terisolasi.
 
 ## HTTP API
 
 Jalankan development server:
 
-``` bash
-APP_ENV=development APP_DATA_DIR=./data\
-python3 -m uvicorn production_app.api.app:create_app\
---factory\
---reload\
---host 127.0.0.1\
---port 8000\
+```bash
+set -a
+source .env
+set +a
+
+python3 -m uvicorn production_app.api.app:create_app \
+  --factory \
+  --reload \
+  --host 127.0.0.1 \
+  --port 8000
 ```
 
 Endpoint yang tersedia:
@@ -128,9 +159,32 @@ health response:
 ```json
 {
     "status": "ok",
-    "environtment": "development"
+    "environment": "development"
 }
 ```
+## Web UI
+
+Jalankan backend pada terminal pertama menggunakan command pada bagian
+HTTP API.
+
+Jalankan frontend pada terminal kedua:
+
+```bash
+cd web
+npm run dev
+```
+Buka `http://localhost:3000`.
+
+Dashboard menyediakan:
+
+- form untuk membuat Asset;
+- deterministic Prediction menggunakan readings;
+- loading, success, dan error states;
+- daftar Asset yang dibaca kembali dari PostgreSQL.
+
+Frontend menggunakan `NEXT_PUBLIC_API_BASE_URL` dari `web/.env.local`.
+Default development URL adalah `http://127.0.0.1:8000`.
+
 ## Local PostgreSQL
 
 Jalankan PostgreSQL:
@@ -386,12 +440,14 @@ python3 -m pytest -m integration -v
 │       │   ├── error_handlers.py
 │       │   └── schemas.py
 │       ├── database/
-│       │   └── connection.py
+│       │   ├── connection.py
+│       │   └── schema.py
 │       ├── domain/
 │       │   └── entities.py
 │       ├── repositories/
 │       │   ├── assets_repo.py
-│       │   └── in_memory_assets.py
+│       │   ├── in_memory_assets.py
+│       │   └── postgres_assets.py
 │       ├── services/
 │       │   ├── assets.py
 │       │   ├── csv_summary.py
@@ -402,9 +458,11 @@ python3 -m pytest -m integration -v
 ├── tests/
 │   ├── api/
 │   │   ├── test_assets_api.py
+│   │   ├── test_cors.py
 │   │   ├── test_health.py
 │   │   └── test_predictions.py
 │   ├── integration/
+│   │   ├── test_asset_persistence.py
 │   │   └── test_database_connection.py
 │   ├── repositories/
 │   │   └── test_in_memory_assets.py
@@ -414,7 +472,27 @@ python3 -m pytest -m integration -v
 │   ├── test_cli.py
 │   ├── test_config.py
 │   └── test_csv_summary.py
+├── web/
+│   ├── public/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── globals.css
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── components/
+│   │   │   ├── persisted-assets.tsx
+│   │   │   └── production-dashboard.tsx
+│   │   └── lib/
+│   │       └── api.ts
+│   ├── .env.example
+│   ├── eslint.config.mjs
+│   ├── next.config.ts
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.mjs
+│   └── tsconfig.json
 ├── .env.example
+├── .gitignore
 ├── compose.yaml
 ├── pyproject.toml
 └── README.md
@@ -422,9 +500,43 @@ python3 -m pytest -m integration -v
 
 ## CSV contract
 
-CSV valid harus:
+CSV valid harus memenuhi ketentuan berikut:
 
-- memiliki header;
-- kolom tidak boleh kosong;
-- kolom tidak boleh duplicate;
-- row tidak kekurangan ataupun kelebihan value (sesuai jumlah header).
+- memiliki header row;
+- nama kolom tidak boleh kosong atau hanya berisi spasi;
+- nama kolom tidak boleh duplikat setelah whitespace dihapus;
+- setiap row harus memiliki jumlah value yang sama dengan jumlah kolom;
+- row tidak boleh kekurangan value;
+- row tidak boleh memiliki value tambahan.
+
+Contoh CSV valid:
+
+```csv
+asset_id,value
+A-01,10
+A-02,20
+```
+
+Contoh header tidak valid:
+
+```csv
+asset_id,
+A-01,10
+```
+
+Contoh row kekurangan value:
+
+```csv
+asset_id,value
+A-01
+```
+
+Contoh row memiliki value tambahan:
+
+```csv
+asset_id,value
+A-01,10,unexpected
+```
+
+Pada tahap saat ini, ingestion memvalidasi struktur CSV. Tipe atau makna
+setiap value belum divalidasi oleh `csv_summary`.

@@ -10,7 +10,7 @@ def test_load_config_uses_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("APP_DATA_DIR", raising=False)
     monkeypatch.delenv("APP_DATABASE_URL", raising=False)
-
+    monkeypatch.delenv("APP_CORS_ORIGINS", raising=False)
     config = load_config()
 
     assert config == AppConfig(
@@ -89,3 +89,19 @@ def test_load_config_rejects_invalid_database_url(
         match="APP_DATABASE_URL",
     ):
         load_config()
+
+
+def test_load_config_reads_cors_origins(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "APP_CORS_ORIGINS",
+        ("http://localhost:3000,https://monitoring.example.com"),
+    )
+
+    config = load_config()
+
+    assert config.cors_origins == (
+        "http://localhost:3000",
+        "https://monitoring.example.com",
+    )
