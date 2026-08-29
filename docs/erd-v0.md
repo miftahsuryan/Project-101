@@ -4,10 +4,8 @@
 ERD ini mendefinisikan rancangan relasional awal untuk menyimpan asset,
 sensor reading, dan prediction.
 
-Pada D08, tabel `assets` sudah direpresentasikan oleh `AssetModel` dan dapat
-diakses melalui `PostgresAssetRepository`. Tabel readings dan predictions masih
-menjadi rancangan untuk tahap berikutnya. Versioned migration akan dibuat pada
-D09 menggunakan Alembic.
+tabel `assets` sudah direpresentasikan oleh `AssetModel` dan dapat
+diakses melalui `PostgresAssetRepository`. Tabel readings dan predictions masih menjadi rancangan untuk tahap berikutnya. Versioned migration dibuat menggunakan Alembic.
 
 ## Diagram
 

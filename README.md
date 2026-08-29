@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D08 - Repository DB.
+Tahap saat ini: D09 - Schema dan migrations.
 
 Fitur tersedia:
 
@@ -45,6 +45,9 @@ Fitur tersedia:
 - persisted Asset list;
 - deterministic prediction stub;
 - frontend lint, type-check, dan production build gates.
+- Alembic migration untuk schema database;
+- migration upgrade dan downgrade;
+- database schema tidak lagi dibuat otomatis saat startup.
 
 
 ## Requirements
@@ -381,6 +384,46 @@ Domain error — `409 Conflict`:
   }
 }
 ```
+## Database Migrations
+
+Alembic digunakan untuk mengelola perubahan schema database secara versioned.
+
+Pastikan PostgreSQL aktif dan environment termuat:
+
+```bash
+docker compose up -d postgres
+
+set -a
+source .env
+set +a
+```
+
+Jalankan migration terbaru:
+
+```bash
+.venv/bin/alembic upgrade head
+```
+
+Kembalikan seluruh migration:
+
+```bash
+.venv/bin/alembic downgrade base
+```
+
+Migration pertama membuat tabel `assets` dengan:
+
+- UUID primary key;
+- unique `asset_code`;
+- kolom `name`;
+- timestamp `created_at` dan `updated_at`;
+- check constraint untuk nilai kosong.
+
+Aplikasi tidak lagi membuat tabel secara otomatis saat startup. Schema harus
+disiapkan melalui:
+
+```bash
+.venv/bin/alembic upgrade head
+```
 
 ## Quality checks
 
@@ -452,6 +495,12 @@ python3 -m pytest -m integration -v
 ├── compose.yaml
 ├── pyproject.toml
 └── README.md
+├── alembic.ini
+├── migrations/
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/
+│       └── 1273a67b52e6_create_assets_table.py
 ```
 
 ## CSV contract
