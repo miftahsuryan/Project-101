@@ -558,3 +558,27 @@ npm run check
 - TypeScript API contract masih disinkronkan secara manual.
 - Belum tersedia automated component test untuk frontend.
 
+## D08 - Repository DB nyata
+
+### Objective
+
+Mengganti PostgreSQL repository berbasis koneksi langsung dengan repository
+berbasis SQLAlchemy `Session` dan request-scoped transaction lifecycle.
+
+### Implemented
+
+- SQLAlchemy engine dan session factory.
+- SQLAlchemy `AssetModel`.
+- `PostgresAssetRepository` berbasis `Session`.
+- Session dependency dengan commit dan rollback.
+- Dependency service pada FastAPI assets router.
+- In-memory repository tetap digunakan pada environment `test`.
+- Integration test membuktikan asset tetap tersedia setelah application
+  instance dibuat ulang.
+
+### Verification
+
+```text
+71 passed, 2 skipped
+ruff: All checks passed!
+mypy: Success: no issues found

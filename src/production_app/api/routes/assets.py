@@ -1,7 +1,8 @@
+from collections.abc import Callable
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from production_app.api.schemas import (
     AssetCreate,
@@ -21,7 +22,9 @@ def _to_response(asset: Asset) -> AssetResponse:
     )
 
 
-def create_assets_router(service: AssetService) -> APIRouter:
+def create_assets_router(
+    service_dependency: Callable[..., AssetService],
+) -> APIRouter:
     router = APIRouter(
         prefix="/assets",
         tags=["assets"],
@@ -42,7 +45,10 @@ def create_assets_router(service: AssetService) -> APIRouter:
             },
         },
     )
-    def create_asset(request: AssetCreate) -> AssetResponse:
+    def create_asset(
+        request: AssetCreate,
+        service: Annotated[AssetService, Depends(service_dependency)],
+    ) -> AssetResponse:
         asset = service.create_asset(
             asset_code=request.asset_code,
             name=request.name,
@@ -62,14 +68,9 @@ def create_assets_router(service: AssetService) -> APIRouter:
     )
     def list_assets(
         asset_code: str | None = None,
-        limit: Annotated[
-            int,
-            Query(ge=1, le=100),
-        ] = 20,
-        offset: Annotated[
-            int,
-            Query(ge=0),
-        ] = 0,
+        limit: Annotated[int, Query(ge=1, le=100)] = 20,
+        offset: Annotated[int, Query(ge=0)] = 0,
+        service: Annotated[AssetService, Depends(service_dependency)] = None,  # type: ignore[assignment]
     ) -> list[AssetResponse]:
         assets = service.list_assets(
             asset_code=asset_code,
@@ -94,7 +95,10 @@ def create_assets_router(service: AssetService) -> APIRouter:
             },
         },
     )
-    def get_asset(asset_id: UUID) -> AssetResponse:
+    def get_asset(
+        asset_id: UUID,
+        service: Annotated[AssetService, Depends(service_dependency)],
+    ) -> AssetResponse:
         asset = service.get_asset(asset_id)
         return _to_response(asset)
 
@@ -120,6 +124,7 @@ def create_assets_router(service: AssetService) -> APIRouter:
     def update_asset(
         asset_id: UUID,
         request: AssetUpdate,
+        service: Annotated[AssetService, Depends(service_dependency)],
     ) -> AssetResponse:
         asset = service.update_asset(
             asset_id=asset_id,
@@ -143,9 +148,11 @@ def create_assets_router(service: AssetService) -> APIRouter:
             },
         },
     )
-    def delete_asset(asset_id: UUID) -> Response:
+    def delete_asset(
+        asset_id: UUID,
+        service: Annotated[AssetService, Depends(service_dependency)],
+    ) -> Response:
         service.delete_asset(asset_id)
-
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     return router

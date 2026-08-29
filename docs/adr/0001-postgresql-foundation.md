@@ -86,18 +86,16 @@ terhadap database kosong.
 
 - Local development membutuhkan Docker.
 - Integration test lebih lambat daripada unit test.
-- In-memory dan PostgreSQL adapters harus mengikuti repository contract yang
-  sama.
-- Database URL saat ini masih opsional karena runtime API belum menggunakan
-  PostgreSQL repository.
+- In-memory dan PostgreSQL adapters harus mengikuti repository contract yang sama.
+- Runtime production menggunakan PostgreSQL jika `APP_DATABASE_URL`
+  tersedia.
+- Environment `test` menggunakan in-memory repository untuk isolasi test.
 
 ## Deferred work
 
-- Connection/session dependency lifecycle: D08.
-- PostgreSQL implementation of `AssetRepository`: D08.
-- SQLAlchemy ORM models: D08–D09.
 - Alembic migrations: D09.
-- Database transaction integration tests: D08–D09.
+- Database transaction integration tests yang lebih lengkap: D09.
+- Tabel readings dan predictions: tahap lanjutan.
 
 ## Verification
 
