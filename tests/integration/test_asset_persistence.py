@@ -34,14 +34,10 @@ def test_asset_survives_app_recreation(
 
     try:
         with TestClient(create_app()) as second_client:
-            get_response = second_client.get(
-                f"/api/v1/assets/{created['id']}"
-            )
+            get_response = second_client.get(f"/api/v1/assets/{created['id']}")
 
         assert get_response.status_code == 200
         assert get_response.json() == created
     finally:
         with TestClient(create_app()) as cleanup_client:
-            cleanup_client.delete(
-                f"/api/v1/assets/{created['id']}"
-            )
+            cleanup_client.delete(f"/api/v1/assets/{created['id']}")

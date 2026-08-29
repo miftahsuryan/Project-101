@@ -1,10 +1,13 @@
 # ERD v0
-
 ## Purpose
 
 ERD ini mendefinisikan rancangan relasional awal untuk menyimpan asset,
-sensor reading, dan prediction. Implementasi tabel dan migration belum
-dilakukan pada D05.
+sensor reading, dan prediction.
+
+Pada D08, tabel `assets` sudah direpresentasikan oleh `AssetModel` dan dapat
+diakses melalui `PostgresAssetRepository`. Tabel readings dan predictions masih
+menjadi rancangan untuk tahap berikutnya. Versioned migration akan dibuat pada
+D09 menggunakan Alembic.
 
 ## Diagram
 
@@ -74,9 +77,3 @@ Endpoint prediction saat ini menggunakan field string bernama `asset_id`,
 misalnya `A-01`. Sebelum persistence diterapkan, kontrak tersebut perlu
 dinormalisasi agar menggunakan UUID internal atau mengganti nama field menjadi
 `asset_code`.
-
-## D05 scope
-
-D05 hanya menentukan bentuk dan hubungan data. PostgreSQL connection,
-SQLAlchemy models, repository database, dan Alembic migrations akan dibuat
-pada tahap berikutnya.

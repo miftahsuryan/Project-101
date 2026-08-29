@@ -1,87 +1,53 @@
-from typing import cast
 from uuid import UUID
 
-import psycopg
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from production_app.database.models import AssetModel
 from production_app.domain.entities import Asset
 
-type AssetRow = tuple[UUID, str, str]
 
-
-def _to_asset(row: AssetRow | None) -> Asset | None:
-    if row is None:
-        return None
-
-    asset_id, asset_code, name = row
-
+def _to_domain(model: AssetModel) -> Asset:
     return Asset(
-        id=asset_id,
-        asset_code=asset_code,
-        name=name,
+        id=model.id,
+        asset_code=model.asset_code,
+        name=model.name,
+    )
+
+
+def _to_model(asset: Asset) -> AssetModel:
+    return AssetModel(
+        id=asset.id,
+        asset_code=asset.asset_code,
+        name=asset.name,
     )
 
 
 class PostgresAssetRepository:
-    def __init__(self, database_url: str) -> None:
-        self._database_url = database_url
+    def __init__(self, session: Session) -> None:
+        self._session = session
 
     def add(self, asset: Asset) -> None:
-        with psycopg.connect(self._database_url) as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    INSERT INTO assets (
-                        id,
-                        asset_code,
-                        name
-                    )
-                    VALUES (%s, %s, %s)
-                    """,
-                    (
-                        asset.id,
-                        asset.asset_code,
-                        asset.name,
-                    ),
-                )
+        self._session.add(_to_model(asset))
 
     def get(self, asset_id: UUID) -> Asset | None:
-        with psycopg.connect(self._database_url) as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT id, asset_code, name
-                    FROM assets
-                    WHERE id = %s
-                    """,
-                    (asset_id,),
-                )
-                row = cast(
-                    AssetRow | None,
-                    cursor.fetchone(),
-                )
+        model = self._session.get(AssetModel, asset_id)
 
-        return _to_asset(row)
+        if model is None:
+            return None
 
-    def get_by_code(
-        self,
-        asset_code: str,
-    ) -> Asset | None:
-        with psycopg.connect(self._database_url) as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT id, asset_code, name
-                    FROM assets
-                    WHERE asset_code = %s
-                    """,
-                    (asset_code,),
-                )
-                row = cast(
-                    AssetRow | None,
-                    cursor.fetchone(),
-                )
+        return _to_domain(model)
 
-        return _to_asset(row)
+    def get_by_code(self, asset_code: str) -> Asset | None:
+        statement = select(AssetModel).where(
+            AssetModel.asset_code == asset_code
+        )
+        model = self._session.scalar(statement)
+
+        if model is None:
+            return None
+
+        return _to_domain(model)
 
     def list_assets(
         self,
@@ -90,69 +56,36 @@ class PostgresAssetRepository:
         limit: int | None = None,
         offset: int = 0,
     ) -> list[Asset]:
-        with psycopg.connect(self._database_url) as connection:
-            with connection.cursor() as cursor:
-                if asset_code is None:
-                    cursor.execute(
-                        """
-                        SELECT id, asset_code, name
-                        FROM assets
-                        ORDER BY created_at, id
-                        LIMIT %s
-                        OFFSET %s
-                        """,
-                        (limit, offset),
-                    )
-                else:
-                    cursor.execute(
-                        """
-                        SELECT id, asset_code, name
-                        FROM assets
-                        WHERE asset_code = %s
-                        ORDER BY created_at, id
-                        LIMIT %s
-                        OFFSET %s
-                        """,
-                        (
-                            asset_code,
-                            limit,
-                            offset,
-                        ),
-                    )
+        statement = select(AssetModel).order_by(
+            AssetModel.created_at,
+            AssetModel.id,
+        )
 
-                rows = cast(
-                    list[AssetRow],
-                    cursor.fetchall(),
-                )
+        if asset_code is not None:
+            statement = statement.where(
+                AssetModel.asset_code == asset_code
+            )
 
-        return [asset for row in rows if (asset := _to_asset(row)) is not None]
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        statement = statement.offset(offset)
+
+        models = self._session.scalars(statement).all()
+
+        return [_to_domain(model) for model in models]
 
     def replace(self, asset: Asset) -> None:
-        with psycopg.connect(self._database_url) as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    UPDATE assets
-                    SET
-                        asset_code = %s,
-                        name = %s,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
-                    """,
-                    (
-                        asset.asset_code,
-                        asset.name,
-                        asset.id,
-                    ),
-                )
+        model = self._session.get(AssetModel, asset.id)
+
+        if model is None:
+            return
+
+        model.asset_code = asset.asset_code
+        model.name = asset.name
 
     def delete(self, asset_id: UUID) -> None:
-        with psycopg.connect(self._database_url) as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    DELETE FROM assets
-                    WHERE id = %s
-                    """,
-                    (asset_id,),
-                )
+        model = self._session.get(AssetModel, asset_id)
+
+        if model is not None:
+            self._session.delete(model)

@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D07 - Milestone v0.1 vertical slice.
+Tahap saat ini: D08 - Repository DB.
 
 Fitur tersedia:
 
@@ -83,6 +83,7 @@ cd ..
 
 ```bash
 cp .env.example .env
+
 ```
 
 muat konfigurasi ke terminal:
@@ -92,14 +93,14 @@ set -a
 source .env
 set +a
 ```
-Variabel backend:
+Backend:
 
 - `APP_ENV`: `development`, `test`, atau `production`.
 - `APP_DATA_DIR`: direktori penyimpanan file CSV.
 - `APP_DATABASE_URL`: PostgreSQL connection string.
 - `APP_CORS_ORIGINS`: daftar origin frontend yang dipisahkan koma.
 
-Variabel frontend dalam `web/.env.local`:
+Frontend:
 
 - `NEXT_PUBLIC_API_BASE_URL`: alamat FastAPI yang digunakan browser.
 
@@ -123,6 +124,7 @@ Jika `APP_DATABASE_URL` tidak tersedia, database integration test akan
 di-skip. Pada environment selain `test`, Asset API menggunakan PostgreSQL
 jika `APP_DATABASE_URL` tersedia. Environment `test` tetap menggunakan
 in-memory repository agar unit dan API tests terisolasi.
+
 
 ## HTTP API
 
@@ -392,17 +394,13 @@ python3 -m mypy
 git diff --check
 ```
 
-Dengan PostgreSQL aktif dan `.env` termuat:
+Dengan PostgreSQL aktif:
 
 ```text
-70 passed
+71 passed, 2 skipped
 ```
 
-Tanpa `APP_DATABASE_URL`:
-
-```text
-69 passed, 1 skipped
-```
+Tanpa `APP_DATABASE_URL`, integration test akan di-skip.
 
 Jalankan hanya unit/API tests tanpa integration test:
 
@@ -416,83 +414,41 @@ Jalankan database integration test:
 python3 -m pytest -m integration -v
 ```
 
-## Project structure
+## Project Structure
 
 ```text
 .
 ├── data/
-│   └── readings.csv
 ├── docs/
 │   ├── adr/
-│   │   └── 0001-postgresql-foundation.md
 │   ├── http/
-│   │   └── api.http
 │   ├── dev-log.md
 │   └── erd-v0.md
 ├── src/
 │   └── production_app/
 │       ├── api/
-│       │   ├── routes/
-│       │   │   ├── assets.py
-│       │   │   ├── health.py
-│       │   │   └── predictions.py
-│       │   ├── app.py
-│       │   ├── error_handlers.py
-│       │   └── schemas.py
 │       ├── database/
 │       │   ├── connection.py
-│       │   └── schema.py
+│       │   ├── models.py
+│       │   ├── schema.py
+│       │   └── session.py
 │       ├── domain/
-│       │   └── entities.py
 │       ├── repositories/
 │       │   ├── assets_repo.py
 │       │   ├── in_memory_assets.py
 │       │   └── postgres_assets.py
 │       ├── services/
-│       │   ├── assets.py
-│       │   ├── csv_summary.py
-│       │   └── predictions.py
 │       ├── cli.py
 │       ├── config.py
 │       └── exceptions.py
 ├── tests/
 │   ├── api/
-│   │   ├── test_assets_api.py
-│   │   ├── test_cors.py
-│   │   ├── test_health.py
-│   │   └── test_predictions.py
+│   ├── database/
 │   ├── integration/
-│   │   ├── test_asset_persistence.py
-│   │   └── test_database_connection.py
 │   ├── repositories/
-│   │   └── test_in_memory_assets.py
-│   ├── services/
-│   │   ├── test_asset_service_repository.py
-│   │   └── test_assets.py
-│   ├── test_cli.py
-│   ├── test_config.py
-│   └── test_csv_summary.py
+│   └── services/
 ├── web/
-│   ├── public/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── globals.css
-│   │   │   ├── layout.tsx
-│   │   │   └── page.tsx
-│   │   ├── components/
-│   │   │   ├── persisted-assets.tsx
-│   │   │   └── production-dashboard.tsx
-│   │   └── lib/
-│   │       └── api.ts
-│   ├── .env.example
-│   ├── eslint.config.mjs
-│   ├── next.config.ts
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── postcss.config.mjs
-│   └── tsconfig.json
 ├── .env.example
-├── .gitignore
 ├── compose.yaml
 ├── pyproject.toml
 └── README.md

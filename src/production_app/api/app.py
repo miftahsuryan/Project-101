@@ -1,5 +1,9 @@
-from fastapi import FastAPI
+from collections.abc import Callable
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
 from production_app.api.error_handlers import register_exception_handlers
 from production_app.api.routes.assets import create_assets_router
@@ -7,7 +11,11 @@ from production_app.api.routes.health import create_health_router
 from production_app.api.routes.predictions import router as predictions_router
 from production_app.config import AppConfig, load_config
 from production_app.database.schema import ensure_asset_table
-from production_app.repositories.assets_repo import AssetRepository
+from production_app.database.session import (
+    create_database_engine,
+    create_session_dependency,
+    create_session_factory,
+)
 from production_app.repositories.in_memory_assets import (
     InMemoryAssetRepository,
 )
@@ -17,23 +25,40 @@ from production_app.repositories.postgres_assets import (
 from production_app.services.assets import AssetService
 
 
-def _create_asset_repository(
+def _create_asset_service_dependency(
     config: AppConfig,
-) -> AssetRepository:
+) -> Callable[..., AssetService]:
     if config.environment == "test" or config.database_url is None:
-        return InMemoryAssetRepository()
+        service = AssetService(
+            repository=InMemoryAssetRepository(),
+        )
+
+        def get_in_memory_service() -> AssetService:
+            return service
+
+        return get_in_memory_service
 
     ensure_asset_table(config.database_url)
 
-    return PostgresAssetRepository(config.database_url)
+    engine = create_database_engine(config.database_url)
+    session_factory = create_session_factory(engine)
+    get_session = create_session_dependency(session_factory)
+
+    def get_postgres_service(
+        session: Annotated[Session, Depends(get_session)],
+    ) -> AssetService:
+        return AssetService(
+            repository=PostgresAssetRepository(session),
+        )
+
+    return get_postgres_service
 
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     config = load_config()
 
-    asset_repository = _create_asset_repository(config)
-    asset_service = AssetService(repository=asset_repository)
+    asset_service_dependency = _create_asset_service_dependency(config)
 
     app = FastAPI(
         title="Production App API",
@@ -66,7 +91,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(
-        create_assets_router(asset_service),
+        create_assets_router(asset_service_dependency),
         prefix="/api/v1",
     )
 
