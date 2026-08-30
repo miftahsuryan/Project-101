@@ -671,3 +671,49 @@ ditunda sampai diperlukan oleh frontend.
 ### Next step
 
 D11 menambahkan typed web API client untuk menghubungkan Next.js dengan backend.
+
+
+## D11 - Frontend typed client
+
+### Objective
+
+Menghubungkan Next.js dengan FastAPI melalui satu HTTP client yang typed,
+sehingga bentuk request dan response dapat diperiksa sebelum runtime.
+
+### Implemented
+
+- TypeScript types untuk `HealthResponse`, `Asset`, `Prediction`, dan error envelope.
+- Fungsi client `getHealth()`, `listAssets()`, `createAsset()`, dan `createPrediction()`.
+- Konfigurasi URL backend melalui `NEXT_PUBLIC_API_BASE_URL`.
+- `ApiRequestError` untuk menangani error HTTP.
+- Komponen `ApiHealth` dengan state loading, success, dan error.
+
+### Data flow
+
+```text
+Next.js component
+    → web/src/lib/api.ts
+        → HTTP /api/v1/*
+            → FastAPI
+```
+
+### Verficatin
+
+```bash
+cd web
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Dengan backend aktif, halaman web menampilkan status:
+
+```text
+API online — environment: development
+```
+
+Jika backend dihentikan, h
+
+### Next Step
+
+D12 menampilkan overview berbasis agregasi data nyata dari backend.

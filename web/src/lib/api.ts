@@ -33,6 +33,11 @@ export type ApiErrorResponse = {
   };
 };
 
+export type HealthResponse = {
+  status: "ok";
+  environment: "development" | "test" | "production";
+};
+
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   "http://127.0.0.1:8000"
@@ -116,4 +121,10 @@ export function listAssets(): Promise<Asset[]> {
       method: "GET",
     },
   );
+}
+
+export function getHealth(): Promise<HealthResponse> {
+  return request<HealthResponse>("/api/v1/health", {
+    method: "GET",
+  });
 }
