@@ -18,9 +18,7 @@ def _database_url() -> str:
     value = os.getenv("APP_DATABASE_URL")
 
     if value is None:
-        raise RuntimeError(
-            "APP_DATABASE_URL wajib diatur untuk menjalankan migration."
-        )
+        raise RuntimeError("APP_DATABASE_URL wajib diatur untuk menjalankan migration.")
 
     return value.replace(
         "postgresql://",

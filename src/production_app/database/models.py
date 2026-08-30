@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    Float,
     String,
     Uuid,
     func,
@@ -55,4 +56,26 @@ class AssetModel(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+
+class ReadingModel(Base):
+    __tablename__ = "readings"
+
+    id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+    )
+    asset_code: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+    )
+    value: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )

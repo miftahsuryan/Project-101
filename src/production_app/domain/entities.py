@@ -7,3 +7,10 @@ class Asset:
     id: UUID
     asset_code: str
     name: str
+
+
+@dataclass(frozen=True, slots=True)
+class Reading:
+    id: UUID
+    asset_code: str
+    value: float

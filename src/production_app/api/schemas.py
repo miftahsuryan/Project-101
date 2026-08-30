@@ -26,14 +26,6 @@ AssetName = Annotated[
     ),
 ]
 
-Readings = Annotated[
-    list[float],
-    Field(
-        min_length=1,
-        max_length=1000,
-    ),
-]
-
 
 class HealthResponse(BaseModel):
     status: Literal["ok"]
@@ -42,7 +34,10 @@ class HealthResponse(BaseModel):
 
 class PredictionRequest(BaseModel):
     asset_id: AssetId
-    readings: Readings
+    readings: Annotated[
+        list[float],
+        Field(min_length=1),
+    ]
 
 
 class PredictionResponse(BaseModel):
@@ -65,6 +60,12 @@ class AssetResponse(BaseModel):
 class AssetUpdate(BaseModel):
     asset_code: AssetCode
     name: AssetName
+
+
+class ReadingResponse(BaseModel):
+    id: UUID
+    asset_code: str
+    value: float
 
 
 class ErrorDetail(BaseModel):

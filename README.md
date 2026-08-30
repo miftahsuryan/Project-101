@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D09 - Schema dan migrations.
+Tahap saat ini: D10 - Ingestion ke database.
 
 Fitur tersedia:
 
@@ -48,6 +48,10 @@ Fitur tersedia:
 - Alembic migration untuk schema database;
 - migration upgrade dan downgrade;
 - database schema tidak lagi dibuat otomatis saat startup.
+- bulk CSV ingestion ke PostgreSQL;
+- deduplication dan idempotent re-import;
+- CLI `production-ingest`;
+- Alembic migration untuk tabel `readings`.
 
 
 ## Requirements
@@ -128,6 +132,24 @@ di-skip. Pada environment selain `test`, Asset API menggunakan PostgreSQL
 jika `APP_DATABASE_URL` tersedia. Environment `test` tetap menggunakan
 in-memory repository agar unit dan API tests terisolasi.
 
+Import readings ke PostgreSQL:
+
+```bash
+set -a
+source .env
+set +a
+
+production-ingest readings.csv
+```
+
+Output:
+
+```text
+imported: 2
+```
+
+Import file yang sama dapat dijalankan kembali tanpa menggandakan row karena
+reading menggunakan UUID deterministik dan PostgreSQL `ON CONFLICT DO NOTHING`.
 
 ## HTTP API
 
@@ -243,8 +265,11 @@ seluruh database lokal.
 Asset API menggunakan UUID sebagai identifier internal dan `asset_code`
 sebagai identifier bisnis yang unik.
 
-Data saat ini disimpan dalam memory. Seluruh asset akan hilang ketika aplikasi
-dihentikan atau dimulai ulang.
+Pada environment `test`, asset disimpan menggunakan in-memory repository agar
+test terisolasi.
+
+Pada environment `development` atau `production`, jika `APP_DATABASE_URL`
+tersedia, asset disimpan secara persisten di PostgreSQL.
 
 Create asset:
 
@@ -430,10 +455,10 @@ disiapkan melalui:
 Jalankan seluruh pemeriksaan:
 
 ```bash
-python3 -m pytest
-python3 -m ruff check --no-cache src tests
-python3 -m ruff format --check --no-cache src tests
-python3 -m mypy
+python3 -m pytest -q
+python3 -m ruff check src tests migrations
+python3 -m ruff format --check src tests migrations
+python3 -m mypy src
 git diff --check
 ```
 
@@ -461,46 +486,43 @@ python3 -m pytest -m integration -v
 
 ```text
 .
+├── alembic.ini
+├── migrations/
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/
+│       ├── 1273a67b52e6_create_assets_table.py
+│       └── b5191cd089d0_create_readings_table.py
 ├── data/
 ├── docs/
-│   ├── adr/
-│   ├── http/
-│   ├── dev-log.md
-│   └── erd-v0.md
 ├── src/
 │   └── production_app/
 │       ├── api/
 │       ├── database/
 │       │   ├── connection.py
 │       │   ├── models.py
-│       │   ├── schema.py
 │       │   └── session.py
 │       ├── domain/
+│       │   └── entities.py
 │       ├── repositories/
 │       │   ├── assets_repo.py
 │       │   ├── in_memory_assets.py
-│       │   └── postgres_assets.py
+│       │   ├── postgres_assets.py
+│       │   ├── postgres_readings.py
+│       │   └── readings_repo.py
 │       ├── services/
+│       │   ├── assets.py
+│       │   ├── csv_summary.py
+│       │   └── ingest.py
 │       ├── cli.py
 │       ├── config.py
 │       └── exceptions.py
 ├── tests/
-│   ├── api/
-│   ├── database/
-│   ├── integration/
-│   ├── repositories/
-│   └── services/
 ├── web/
 ├── .env.example
 ├── compose.yaml
 ├── pyproject.toml
 └── README.md
-├── alembic.ini
-├── migrations/
-│   ├── env.py
-│   ├── script.py.mako
-│   └── versions/
-│       └── 1273a67b52e6_create_assets_table.py
 ```
 
 ## CSV contract
