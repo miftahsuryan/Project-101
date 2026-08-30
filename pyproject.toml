@@ -9,6 +9,7 @@ description = "MVP for typed CSV ingestion and production monitoring"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.13,<2.0",
     "fastapi>=0.115,<1.0",
     "psycopg[binary]>=3.2,<4.0",
     "sqlalchemy>=2.0,<3.0",
@@ -16,6 +17,7 @@ dependencies = [
 ]
 [project.scripts]
 production-summary = "production_app.cli:main"
+production-ingest = "production_app.cli:ingest_main"
 
 [project.optional-dependencies]
 dev = [

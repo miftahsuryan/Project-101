@@ -24,3 +24,12 @@ def test_asset_model_maps_assets_table() -> None:
     assert table.c.name.nullable is False
     assert table.c.created_at.nullable is False
     assert table.c.updated_at.nullable is False
+
+
+def test_readings_table_has_expected_columns() -> None:
+    table = Base.metadata.tables["readings"]
+
+    assert table.c.id.primary_key
+    assert table.c.asset_code.nullable is False
+    assert table.c.value.nullable is False
+    assert table.c.created_at.nullable is False

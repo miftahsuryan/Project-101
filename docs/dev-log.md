@@ -582,3 +582,92 @@ berbasis SQLAlchemy `Session` dan request-scoped transaction lifecycle.
 71 passed, 2 skipped
 ruff: All checks passed!
 mypy: Success: no issues found
+```
+
+## D09 - Schema dan migrations
+
+### Objective
+
+Mengelola schema database menggunakan Alembic agar perubahan tabel dapat
+dilacak, dijalankan, dan dibatalkan secara versioned.
+
+### Implemented
+
+- Alembic configuration pada `alembic.ini`.
+- Migration environment pada `migrations/env.py`.
+- `Base.metadata` terhubung ke Alembic.
+- Migration awal untuk tabel `assets`.
+- `upgrade()` untuk membuat tabel.
+- `downgrade()` untuk menghapus tabel.
+- Runtime API tidak lagi memanggil `ensure_asset_table()`.
+- Bootstrap schema lama tidak lagi menjadi bagian dari application startup.
+
+### Verification
+
+Urutan berikut berhasil pada database kosong:
+
+```bash
+.venv/bin/alembic upgrade head
+.venv/bin/alembic downgrade base
+.venv/bin/alembic upgrade head
+```
+
+### Decision
+
+Database schema dikelola oleh Alembic, bukan dibuat otomatis oleh aplikasi.
+Hal ini membuat perubahan schema dapat direview dan direproduksi pada
+environment berbeda.
+
+### Next step
+
+Menambahkan migration untuk tabel `readings` dan `predictions`, serta foreign key dan index berdasarkan ERD.
+
+
+## D10 - Ingestion ke database
+
+### Objective
+
+Menyimpan reading dari CSV ke PostgreSQL secara bulk dan idempotent.
+
+### Implemented
+
+- Entity `Reading`.
+- SQLAlchemy `ReadingModel`.
+- Alembic migration untuk tabel `readings`.
+- `ReadingRepository` protocol.
+- `PostgresReadingRepository.add_many()`.
+- `IngestService` untuk validasi, parsing, dan deduplication CSV.
+- UUID deterministik menggunakan `uuid5`.
+- `ON CONFLICT DO NOTHING` untuk mencegah duplicate saat re-import.
+- CLI `production-ingest`.
+
+### Data flow
+
+```text
+readings.csv
+    → IngestService
+        → Reading entity
+            → PostgresReadingRepository
+                → PostgreSQL
+```
+
+### Verification
+
+```bash
+python3 -m pytest -q
+python3 -m ruff check src tests migrations
+python3 -m mypy src
+production-ingest readings.csv
+production-ingest readings.csv
+```
+
+Import file yang sama dua kali tidak menggandakan row pada tabel `readings`.
+
+### Decision
+
+D10 menggunakan CLI sebagai production import entry point. Endpoint upload CSV
+ditunda sampai diperlukan oleh frontend.
+
+### Next step
+
+D11 menambahkan typed web API client untuk menghubungkan Next.js dengan backend.

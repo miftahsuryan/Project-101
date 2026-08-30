@@ -39,9 +39,7 @@ class PostgresAssetRepository:
         return _to_domain(model)
 
     def get_by_code(self, asset_code: str) -> Asset | None:
-        statement = select(AssetModel).where(
-            AssetModel.asset_code == asset_code
-        )
+        statement = select(AssetModel).where(AssetModel.asset_code == asset_code)
         model = self._session.scalar(statement)
 
         if model is None:
@@ -62,9 +60,7 @@ class PostgresAssetRepository:
         )
 
         if asset_code is not None:
-            statement = statement.where(
-                AssetModel.asset_code == asset_code
-            )
+            statement = statement.where(AssetModel.asset_code == asset_code)
 
         if limit is not None:
             statement = statement.limit(limit)

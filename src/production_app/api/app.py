@@ -10,7 +10,6 @@ from production_app.api.routes.assets import create_assets_router
 from production_app.api.routes.health import create_health_router
 from production_app.api.routes.predictions import router as predictions_router
 from production_app.config import AppConfig, load_config
-from production_app.database.schema import ensure_asset_table
 from production_app.database.session import (
     create_database_engine,
     create_session_dependency,
@@ -37,8 +36,6 @@ def _create_asset_service_dependency(
             return service
 
         return get_in_memory_service
-
-    ensure_asset_table(config.database_url)
 
     engine = create_database_engine(config.database_url)
     session_factory = create_session_factory(engine)
