@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D10 - Ingestion ke database.
+Tahap saat ini: D11 - Frontend typed client.
 
 Fitur tersedia:
 

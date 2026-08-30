@@ -1,5 +1,6 @@
 import PersistedAssets from "@/components/persisted-assets";
 import ProductionDashboard from "@/components/production-dashboard";
+import ApiHealth from "@/components/api-health";
 
 export default function Home() {
   return (
@@ -19,7 +20,7 @@ export default function Home() {
             deterministic prediction from the FastAPI backend.
           </p>
         </header>
-
+        <ApiHealth />
         <ProductionDashboard />
         <PersistedAssets />
       </div>
