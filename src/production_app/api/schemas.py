@@ -81,3 +81,10 @@ class ErrorBody(BaseModel):
 
 class ErrorResponse(BaseModel):
     error: ErrorBody
+
+
+class OverviewResponse(BaseModel):
+    total_assets: int = Field(ge=0)
+    total_readings: int = Field(ge=0)
+    average_reading: float | None = None
+    latest_reading: float | None = None

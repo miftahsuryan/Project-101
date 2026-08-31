@@ -38,6 +38,13 @@ export type HealthResponse = {
   environment: "development" | "test" | "production";
 };
 
+export type OverviewResponse = {
+  total_assets: number;
+  total_readings: number;
+  average_reading: number | null;
+  latest_reading: number | null;
+}
+
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   "http://127.0.0.1:8000"
@@ -126,5 +133,11 @@ export function listAssets(): Promise<Asset[]> {
 export function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>("/api/v1/health", {
     method: "GET",
+  });
+}
+
+export function getOverview(): Promise<OverviewResponse> {
+  return request<OverviewResponse>("/api/v1/overview",{
+    method: "GET"
   });
 }

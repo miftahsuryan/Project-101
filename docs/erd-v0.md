@@ -75,3 +75,4 @@ Endpoint prediction saat ini menggunakan field string bernama `asset_id`,
 misalnya `A-01`. Sebelum persistence diterapkan, kontrak tersebut perlu
 dinormalisasi agar menggunakan UUID internal atau mengganti nama field menjadi
 `asset_code`.
+
