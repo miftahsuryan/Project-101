@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { ApiRequestError, getHealth } from "@/lib/api";
 
 type HealthState =
@@ -37,21 +36,51 @@ export default function ApiHealth() {
       });
   }, []);
 
-  if (state.status === "loading") {
-    return <p className="text-sm text-slate-500">Checking API...</p>;
-  }
-
-  if (state.status === "error") {
-    return (
-      <p className="text-sm text-red-700">
-        API unavailable: {state.message}
-      </p>
-    );
-  }
-
   return (
-    <p className="text-sm text-emerald-700">
-      API online — environment: {state.data.environment}
-    </p>
+    <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-slate-700">API Health</span>
+
+        {/* Status Badge */}
+        {state.status === "loading" && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400" />
+            Checking
+          </span>
+        )}
+
+        {state.status === "success" && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Online
+          </span>
+        )}
+
+        {state.status === "error" && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+            Offline
+          </span>
+        )}
+      </div>
+
+      {/* Detail Content */}
+      <div className="mt-3 text-xs text-slate-500">
+        {state.status === "loading" && <p>Checking backend connection...</p>}
+
+        {state.status === "success" && (
+          <p>
+            Environment:{" "}
+            <span className="font-semibold text-slate-800 capitalize">
+              {state.data.environment}
+            </span>
+          </p>
+        )}
+
+        {state.status === "error" && (
+          <p className="text-rose-600">{state.message}</p>
+        )}
+      </div>
+    </div>
   );
 }

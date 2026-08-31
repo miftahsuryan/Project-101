@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from production_app.database.models import AssetModel
@@ -29,6 +29,11 @@ class PostgresAssetRepository:
 
     def add(self, asset: Asset) -> None:
         self._session.add(_to_model(asset))
+
+    def count(self) -> int:
+        statement = select(func.count(AssetModel.id))
+        result = self._session.scalar(statement)
+        return int(result or 0)
 
     def get(self, asset_id: UUID) -> Asset | None:
         model = self._session.get(AssetModel, asset_id)

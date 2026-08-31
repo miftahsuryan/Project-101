@@ -8,6 +8,9 @@ class InMemoryAssetRepository:
         self._assets: dict[UUID, Asset] = {}
         self._asset_ids_by_code: dict[str, UUID] = {}
 
+    def count(self) -> int:
+        return len(self._assets)
+
     def add(self, asset: Asset) -> None:
         self._assets[asset.id] = asset
         self._asset_ids_by_code[asset.asset_code] = asset.id

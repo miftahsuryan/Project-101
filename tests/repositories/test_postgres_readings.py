@@ -29,3 +29,19 @@ def test_add_many_executes_bulk_insert() -> None:
     repository.add_many(readings)
 
     session.execute.assert_called_once()
+
+
+def test_get_summary_executes_queries() -> None:
+    session = Mock(spec=Session)
+    aggregate_result = Mock()
+    aggregate_result.one.return_value = (2, 15.0)
+    session.execute.return_value = aggregate_result
+    session.scalar.return_value = 20.0
+
+    repository = PostgresReadingRepository(session)
+
+    summary = repository.get_summary()
+
+    assert summary.total == 2
+    assert summary.average == 15.0
+    assert summary.latest == 20.0

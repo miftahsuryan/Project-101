@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D11 - Frontend typed client.
+Tahap saat ini: D12 - Production overview.
 
 Fitur tersedia:
 
@@ -52,6 +52,10 @@ Fitur tersedia:
 - deduplication dan idempotent re-import;
 - CLI `production-ingest`;
 - Alembic migration untuk tabel `readings`.
+- production overview dari agregasi PostgreSQL;
+- endpoint `GET /api/v1/overview`;
+- typed overview client dan overview cards;
+- loading, success, dan error state pada overview.
 
 
 ## Requirements

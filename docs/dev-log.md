@@ -697,7 +697,7 @@ Next.js component
             → FastAPI
 ```
 
-### Verficatin
+### Verfication
 
 ```bash
 cd web
@@ -717,3 +717,56 @@ Jika backend dihentikan, h
 ### Next Step
 
 D12 menampilkan overview berbasis agregasi data nyata dari backend.
+
+
+## D12 - Production overview
+
+### Objective
+
+Menampilkan ringkasan data produksi nyata dari PostgreSQL pada dashboard
+Next.js.
+
+### Implemented
+
+- `OverviewResponse` sebagai kontrak API.
+- `ReadingSummary` untuk agregasi jumlah, rata-rata, dan nilai terbaru.
+- `AssetRepository.count()` untuk menghitung jumlah asset.
+- `OverviewService` yang menggabungkan asset dan reading summary.
+- Endpoint `GET /api/v1/overview`.
+- Typed client `getOverview()` pada `web/src/lib/api.ts`.
+- Komponen `OverviewCards` pada dashboard.
+- Loading, success, dan error state untuk overview.
+
+### Data flow
+
+```text
+PostgreSQL assets/readings
+    → repositories
+        → OverviewService
+            → GET /api/v1/overview
+                → getOverview()
+                    → OverviewCards
+```
+### Example response
+{
+  "total_assets": 5,
+  "total_readings": 2,
+  "average_reading": 15.0,
+  "latest_reading": 10.0
+}
+
+latest_reading saat ini ditentukan berdasarkan created_at database.
+
+### Verfication
+curl http://127.0.0.1:8000/api/v1/overview
+.venv/bin/python -m pytest -q
+.venv/bin/python -m ruff check src tests
+.venv/bin/python -m mypy src
+cd web
+npm run lint
+npx tsc --noEmit --incremental false
+npm run build
+
+### Next step
+
+D13 menambahkan production table, filtering, dan pagination pada frontend.

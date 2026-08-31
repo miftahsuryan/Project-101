@@ -1,14 +1,18 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from production_app.database.models import ReadingModel
 from production_app.domain.entities import Reading
+from production_app.repositories.readings_repo import (
+    ReadingRepository,
+    ReadingSummary,
+)
 
 
-class PostgresReadingRepository:
+class PostgresReadingRepository(ReadingRepository):
     def __init__(self, session: Session) -> None:
         self._session = session
 
@@ -32,30 +36,27 @@ class PostgresReadingRepository:
 
         self._session.execute(statement)
 
-    def list_readings(
-        self,
-        *,
-        asset_code: str | None = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> list[Reading]:
-        statement = select(ReadingModel).order_by(
-            ReadingModel.created_at,
-            ReadingModel.id,
+    def get_summary(self) -> ReadingSummary:
+        aggregate_statement = select(
+            func.count(ReadingModel.id),
+            func.avg(ReadingModel.value),
         )
 
-        if asset_code is not None:
-            statement = statement.where(ReadingModel.asset_code == asset_code)
+        total, average = self._session.execute(aggregate_statement).one()
 
-        statement = statement.limit(limit).offset(offset)
-
-        models = self._session.scalars(statement).all()
-
-        return [
-            Reading(
-                id=model.id,
-                asset_code=model.asset_code,
-                value=model.value,
+        latest_statement = (
+            select(ReadingModel.value)
+            .order_by(
+                ReadingModel.created_at.desc(),
+                ReadingModel.id.desc(),
             )
-            for model in models
-        ]
+            .limit(1)
+        )
+
+        latest = self._session.scalar(latest_statement)
+
+        return ReadingSummary(
+            total=int(total or 0),
+            average=None if average is None else float(average),
+            latest=None if latest is None else float(latest),
+        )
