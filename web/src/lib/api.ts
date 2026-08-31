@@ -45,6 +45,18 @@ export type OverviewResponse = {
   latest_reading: number | null;
 }
 
+export type Reading = {
+  id: string;
+  asset_code: string;
+  value: number;
+};
+
+export type ReadingPage = {
+  items: Reading[];
+  limit: number;
+  offset: number;
+  total: number;
+};
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   "http://127.0.0.1:8000"
@@ -140,4 +152,26 @@ export function getOverview(): Promise<OverviewResponse> {
   return request<OverviewResponse>("/api/v1/overview",{
     method: "GET"
   });
+}
+
+export function listReadings(
+  assetCode = "",
+  limit = 20,
+  offset = 0,
+): Promise<ReadingPage> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  if (assetCode.trim() !== "") {
+    params.set("asset_code", assetCode.trim());
+  }
+
+  return request<ReadingPage>(
+    `/api/v1/readings?${params.toString()}`,
+    {
+      method: "GET",
+    },
+  );
 }

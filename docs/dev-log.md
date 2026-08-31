@@ -770,3 +770,41 @@ npm run build
 ### Next step
 
 D13 menambahkan production table, filtering, dan pagination pada frontend.
+
+## D13 - Production data explorer
+
+### Objective
+
+Menyediakan tabel readings pada frontend dengan filter asset code dan
+pagination berbasis API.
+
+### Implemented
+
+- Endpoint `GET /api/v1/readings`.
+- Filter exact-match berdasarkan `asset_code`.
+- Pagination menggunakan `limit` dan `offset`.
+- Typed client `listReadings()`.
+- Production table pada Next.js.
+- Loading, error, dan success state.
+- Filter tidak mengirim request pada setiap karakter.
+- Pagination tidak melakukan full page reload.
+### Data flow
+
+```text
+PostgreSQL readings
+    → PostgresReadingRepository.list_page()
+        → ReadingService.list_readings()
+            → GET /api/v1/readings
+                → listReadings()
+                    → ProductionTable
+```
+
+### Verification
+
+```bash
+curl "http://127.0.0.1:8000/api/v1/readings?limit=20&offset=0"
+curl "http://127.0.0.1:8000/api/v1/readings?asset_code=A-01"
+```
+
+### Next step
+D14 melengkapi UI state: loading, empty, error, dan success.

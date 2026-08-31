@@ -68,6 +68,13 @@ class ReadingResponse(BaseModel):
     value: float
 
 
+class ReadingListResponse(BaseModel):
+    items: list[ReadingResponse]
+    limit: int
+    offset: int
+    total: int
+
+
 class ErrorDetail(BaseModel):
     field: str
     message: str
