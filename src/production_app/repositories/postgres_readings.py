@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from production_app.database.models import ReadingModel
 from production_app.domain.entities import Reading
 from production_app.repositories.readings_repo import (
+    ReadingPage,
     ReadingRepository,
     ReadingSummary,
 )
@@ -60,3 +61,48 @@ class PostgresReadingRepository(ReadingRepository):
             average=None if average is None else float(average),
             latest=None if latest is None else float(latest),
         )
+    
+    def list_page(
+        self,
+        *,
+        asset_code: str | None,
+        limit: int,
+        offset: int,
+    ) -> ReadingPage:
+        statement = select(ReadingModel)
+
+        count_statement = select(func.count(ReadingModel.id))
+
+        if asset_code is not None:
+            statement = statement.where(
+                ReadingModel.asset_code == asset_code
+            )
+            count_statement = count_statement.where(
+                ReadingModel.asset_code == asset_code
+            )
+
+        statement = (
+            statement
+            .order_by(ReadingModel.created_at.desc(), ReadingModel.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+
+        models = self._session.scalars(statement).all()
+        total = self._session.scalar(count_statement) or 0
+
+        items = [
+            Reading(
+                id=model.id,
+                asset_code=model.asset_code,
+                value=model.value,
+            )
+            for model in models
+        ]
+
+        return ReadingPage(
+            items=items,
+            total=int(total),
+        )
+
+    

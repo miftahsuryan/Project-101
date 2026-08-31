@@ -14,3 +14,4 @@ class Reading:
     id: UUID
     asset_code: str
     value: float
+    

@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D12 - Production overview.
+Tahap saat ini: D13 - Production data explorer.
 
 Fitur tersedia:
 
@@ -56,6 +56,12 @@ Fitur tersedia:
 - endpoint `GET /api/v1/overview`;
 - typed overview client dan overview cards;
 - loading, success, dan error state pada overview.
+- production readings table pada frontend;
+- filter readings berdasarkan `asset_code`;
+- pagination `limit` dan `offset`;
+- endpoint `GET /api/v1/readings`;
+- typed client `listReadings()`;
+- loading, error, dan success state pada production table.
 
 
 ## Requirements
@@ -216,6 +222,19 @@ Dashboard menyediakan:
 Frontend menggunakan `NEXT_PUBLIC_API_BASE_URL` dari `web/.env.local`.
 Default development URL adalah `http://127.0.0.1:8000`.
 
+Production table menyediakan:
+
+- daftar reading yang tersimpan di PostgreSQL;
+- filter exact-match berdasarkan asset code;
+- pagination dengan tombol Previous dan Next;
+- status loading tanpa menghapus form;
+- error state jika API tidak tersedia.
+
+Contoh filter:
+
+```text
+asset_code = A-01
+
 ## Local PostgreSQL
 
 Jalankan PostgreSQL:
@@ -263,6 +282,20 @@ docker compose stop postgres
 Named volume `postgres_data` menyimpan data ketika container dihentikan atau
 dibuat ulang. Hindari `docker compose down -v` kecuali memang ingin menghapus
 seluruh database lokal.
+
+Production table menyediakan:
+
+- daftar reading yang tersimpan di PostgreSQL;
+- filter exact-match berdasarkan asset code;
+- pagination dengan tombol Previous dan Next;
+- status loading tanpa menghapus form;
+- error state jika API tidak tersedia.
+
+Contoh filter:
+
+```text
+asset_code = A-01
+```
 
 ## Asset API
 
@@ -518,11 +551,19 @@ python3 -m pytest -m integration -v
 │       │   ├── assets.py
 │       │   ├── csv_summary.py
 │       │   └── ingest.py
+│       │   └── overview.py
+│       │   └── reading.py
 │       ├── cli.py
 │       ├── config.py
 │       └── exceptions.py
 ├── tests/
 ├── web/
+│   └── src/
+│       ├── components/
+│       │   ├── overview-cards.tsx
+│       │   └── production-table.tsx
+│       └── lib/
+│           └── api.ts
 ├── .env.example
 ├── compose.yaml
 ├── pyproject.toml

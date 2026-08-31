@@ -10,6 +10,7 @@ from production_app.api.routes.assets import create_assets_router
 from production_app.api.routes.health import create_health_router
 from production_app.api.routes.overview import create_overview_router
 from production_app.api.routes.predictions import router as predictions_router
+from production_app.api.routes.readings import create_readings_router
 from production_app.config import AppConfig, load_config
 from production_app.database.session import (
     create_database_engine,
@@ -26,9 +27,13 @@ from production_app.repositories.postgres_assets import (
 from production_app.repositories.postgres_readings import (
     PostgresReadingRepository,
 )
-from production_app.repositories.readings_repo import ReadingSummary
+from production_app.repositories.readings_repo import (
+    ReadingPage,
+    ReadingSummary,
+)
 from production_app.services.assets import AssetService
 from production_app.services.overview import OverviewService
+from production_app.services.readings import ReadingService
 
 
 def _create_asset_service_dependency(
@@ -57,7 +62,6 @@ def _create_asset_service_dependency(
 
     return get_postgres_service
 
-
 class EmptyReadingRepository:
     def add_many(self, readings: Sequence[Reading]) -> None:
         return None
@@ -67,6 +71,18 @@ class EmptyReadingRepository:
             total=0,
             average=None,
             latest=None,
+        )
+
+    def list_page(
+        self,
+        *,
+        asset_code: str | None,
+        limit: int,
+        offset: int,
+    ) -> ReadingPage:
+        return ReadingPage(
+            items=[],
+            total=0,
         )
 
 
@@ -98,6 +114,32 @@ def _create_overview_service_dependency(
 
     return get_postgres_overview_service
 
+def _create_reading_service_dependency(
+    config: AppConfig,
+) -> Callable[..., ReadingService]:
+    if config.environment == "test" or config.database_url is None:
+        service = ReadingService(
+            repository=EmptyReadingRepository(),
+        )
+
+        def get_test_reading_service() -> ReadingService:
+            return service
+
+        return get_test_reading_service
+
+    engine = create_database_engine(config.database_url)
+    session_factory = create_session_factory(engine)
+    get_session = create_session_dependency(session_factory)
+
+    def get_postgres_reading_service(
+        session: Annotated[Session, Depends(get_session)],
+    ) -> ReadingService:
+        return ReadingService(
+            repository=PostgresReadingRepository(session),
+        )
+
+    return get_postgres_reading_service
+
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
@@ -105,6 +147,7 @@ def create_app() -> FastAPI:
 
     asset_service_dependency = _create_asset_service_dependency(config)
     overview_service_dependency = _create_overview_service_dependency(config)
+    reading_service_dependency = _create_reading_service_dependency(config)
 
     app = FastAPI(
         title="Production App API",
@@ -146,4 +189,9 @@ def create_app() -> FastAPI:
         prefix="/api/v1",
     )
 
+    app.include_router(
+    create_readings_router(reading_service_dependency),
+    prefix="/api/v1",
+
+    )
     return app
