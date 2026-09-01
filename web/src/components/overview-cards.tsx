@@ -48,6 +48,24 @@ export default function OverviewCards() {
 
   const { data } = state;
 
+  const hasNoData =
+    data.total_assets === 0 &&
+    data.total_readings === 0;
+
+  if (hasNoData) {
+    return (
+      <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
+        <p className="font-medium text-slate-700">
+          No overview data available
+        </p>
+
+        <p className="mt-1 text-sm text-slate-500">
+          Add assets or import readings to see the summary.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="grid gap-4 sm:grid-cols-2">
       <OverviewCard
