@@ -116,8 +116,18 @@ export default function ProductionTable() {
           {state.message}
         </p>
       )}
+      {data !== null && data.items.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
+          <p className="font-medium text-slate-700">
+            No readings found
+          </p>
 
-      {data !== null && (
+          <p className="mt-1 text-sm text-slate-500">
+            Try another asset code or clear the filter.
+          </p>
+        </div>
+      )}
+      {data !== null && data.items.length > 0 && (
         <>
           <p className="text-sm text-slate-500">
             Showing {data.items.length} of {data.total} readings

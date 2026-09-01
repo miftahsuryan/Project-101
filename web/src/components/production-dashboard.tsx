@@ -14,14 +14,14 @@ type SubmissionState =
   | { status: "idle" }
   | { status: "loading" }
   | {
-      status: "success";
-      asset: Asset;
-      prediction: Prediction;
-    }
+    status: "success";
+    asset: Asset;
+    prediction: Prediction;
+  }
   | {
-      status: "error";
-      message: string;
-    };
+    status: "error";
+    message: string;
+  };
 
 export default function ProductionDashboard() {
   const [assetCode, setAssetCode] = useState("PUMP-01");
@@ -34,7 +34,19 @@ export default function ProductionDashboard() {
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
+    const normalizedAssetCode = assetCode.trim();
+    const normalizedAssetName = assetName.trim();
 
+    if (
+      normalizedAssetCode.length === 0 ||
+      normalizedAssetName.length === 0
+    ) {
+      setSubmission({
+        status: "error",
+        message: "Asset code dan asset name wajib diisi.",
+      });
+      return;
+    }
     const parsedReadings = readings
       .split(",")
       .map((value) => value.trim())
@@ -56,8 +68,8 @@ export default function ProductionDashboard() {
 
     try {
       const asset = await createAsset({
-        asset_code: assetCode.trim(),
-        name: assetName.trim(),
+        asset_code: normalizedAssetCode,
+        name: normalizedAssetName,
       });
 
       const prediction = await createPrediction({
