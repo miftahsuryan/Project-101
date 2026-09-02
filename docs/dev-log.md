@@ -808,3 +808,34 @@ curl "http://127.0.0.1:8000/api/v1/readings?asset_code=A-01"
 
 ### Next step
 D14 melengkapi UI state: loading, empty, error, dan success.
+
+## D14 - Harden core UI states
+
+### Objective
+
+Memastikan seluruh UI inti dapat menangani loading, empty, error, dan success
+state secara konsisten.
+
+### Implemented
+
+- Empty state pada `OverviewCards`.
+- Empty state pada `ProductionTable`.
+- Error dan loading state pada seluruh komponen utama.
+- Validasi asset code, asset name, dan readings.
+- Prediction menggunakan UUID asset.
+- Layout tetap tampil saat request berjalan.
+- Filter tidak melakukan request pada setiap karakter.
+- Pagination tidak melakukan full page reload.
+
+### Verification
+
+```bash
+.venv/bin/python -m pytest -q
+.venv/bin/python -m ruff check src tests
+.venv/bin/python -m mypy src
+
+cd web
+npm run lint
+npx tsc --noEmit --incremental false
+npm run build
+```

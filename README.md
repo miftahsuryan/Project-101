@@ -4,7 +4,7 @@ MVP untuk mempelajari pembangunan aplikasi production monitoring secara bertahap
 
 ## Status
 
-Tahap saat ini: D13 - Production data explorer.
+Tahap saat ini: D15 - Tabular ML baseline.
 
 Fitur tersedia:
 
@@ -62,6 +62,13 @@ Fitur tersedia:
 - endpoint `GET /api/v1/readings`;
 - typed client `listReadings()`;
 - loading, error, dan success state pada production table.
+- UI state lengkap: loading, empty, error, dan success;
+- validasi input prediction;
+- empty state untuk overview, assets, dan readings.
+- AI4I 2020 predictive maintenance dataset;
+- deterministic risk baseline;
+- baseline metrics dan confusion counts;
+- dokumentasi fitur sensor dan keterbatasan model.
 
 
 ## Requirements
@@ -190,6 +197,8 @@ Endpoint yang tersedia:
 | `POST` | `/api/v1/predictions` | Membuat fake prediction |
 | `GET` | `/openapi.json` | Mengambil OpenAPI contract |
 | `GET` | `/docs` | Membuka Swagger UI |
+| `GET` | `/api/v1/overview` | Mengambil ringkasan asset dan readings |
+| `GET` | `/api/v1/readings` | Mengambil readings dengan filter dan pagination |
 
 health response:
 
@@ -234,6 +243,7 @@ Contoh filter:
 
 ```text
 asset_code = A-01
+```
 
 ## Local PostgreSQL
 
@@ -295,6 +305,25 @@ Contoh filter:
 
 ```text
 asset_code = A-01
+```
+- overview cards dari agregasi PostgreSQL;
+- production readings table;
+- filter berdasarkan `asset_code`;
+- pagination `limit` dan `offset`;
+- deterministic prediction;
+- loading, empty, error, dan success state.
+
+## Tabular ML Baseline
+
+Jalankan evaluasi baseline:
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/evaluate_baseline.py
+```
+
+Baseline menggunakan dataset:
+```test
+data/ai4i2020.csv
 ```
 
 ## Asset API
