@@ -138,36 +138,43 @@ Tahap berikutnya:
 
 ## Baseline Metrics
 
-Evaluasi awal menggunakan seluruh row dataset:
+Evaluasi perbandingan antara Naive Majority Baseline (Dummy Classifier yang selalu memprediksi tidak gagal) dan Deterministic Heuristic Baseline (`baseline-v1` di mana `risk_level == "high"` dianggap gagal):
 
-```text
-rows: 10000
-true_positive: 50
-true_negative: 9648
-false_positive: 13
-false_negative: 289
-accuracy: 0.9698
-```
+| Model / Split | Total Rows | Accuracy | Precision | Recall | F1-Score | TP | FP | FN | TN |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Naive (Dummy Class 0)** | 10,000 | 96.61% | 0.00% | 0.00% | 0.0000 | 0 | 0 | 339 | 9,661 |
+| **Baseline-v1 (Full)** | 10,000 | 96.98% | 79.37% | 14.75% | 0.2488 | 50 | 13 | 289 | 9,648 |
+| **Baseline-v1 (Train 80%)** | 8,000 | 96.65% | 84.78% | 13.00% | 0.2254 | 39 | 7 | 261 | 7,693 |
+| **Baseline-v1 (Test 20%)** | 2,000 | 98.30% | 64.71% | 28.21% | 0.3929 | 11 | 6 | 28 | 1,955 |
+
 ## Interpretation
 
-Baseline ini digunakan sebagai reference point. Nilai accuracy bukan satu-satunya
-metrik penting karena dataset memiliki jumlah failure yang jauh lebih sedikit
-dibandingkan non-failure.
+1. **Ilusi Accuracy pada Imbalanced Dataset:**
+   - Naive baseline mencapai akurasi 96.61% tanpa memprediksi satupun kegagalan (`recall = 0.00%`). Jika hanya melihat akurasi, model tampak prima padahal 100% kerusakan mesin terlewatkan.
+2. **Kekuatan Heuristic Baseline-v1:**
+   - Dengan precision 79.37%, hampir 80% dari alarm yang dikeluarkan terbukti merupakan kerusakan nyata dengan false alarm sangat rendah (hanya 13 false positive).
+   - Menangkap 50 kerusakan mesin nyata pada dataset penuh dan 11 pada test set (F1 test: 0.3929).
+3. **Peluang Iterasi Berikutnya:**
+   - False negative (289 pada full dataset) menunjukkan masih banyak failure modes (seperti kegagalan akibat overload mendadak atau power failure) yang memerlukan model terkalibrasi atau feature engineering lanjutan (logistic regression / tree-based classifier).
 
-False negative perlu diperhatikan karena berarti mesin berisiko tetapi tidak
-terdeteksi oleh baseline.
+## Deterministic Data Seeding
 
-Angka di atas adalah baseline awal dan belum menunjukkan performa model
-production.
+Tersedia script `scripts/seed_data.py` untuk mengekstrak sampel realistis dan deterministik dari `data/ai4i2020.csv`:
 
+```bash
+PYTHONPATH=src .venv/bin/python scripts/seed_data.py
+```
 
-Catatan penting: baseline menganggap `risk_level == "high"` sebagai prediksi
-kegagalan. Ini aturan sederhana untuk pembanding, bukan model klasifikasi final.
+Output:
+- `data/seed_assets.csv`: Daftar asset terformat (`asset_code,name`).
+- `data/seed_readings.csv`: Readings kompatibel dengan ingest service (`asset_id,value`).
+- Opsi `--load-db` untuk langsung mengisi database PostgreSQL lokal saat `APP_DATABASE_URL` aktif.
 
 Jalankan quality check:
 
 ```bash
 .venv/bin/python -m ruff check src tests scripts
-.venv/bin/python -m mypy src
+.venv/bin/python -m mypy src tests scripts
 .venv/bin/python -m pytest -q
 ```
+
