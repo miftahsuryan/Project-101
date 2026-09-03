@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from production_app.domain.entities import Reading
+from production_app.repositories.readings_repo import ReadingPage, ReadingSummary
 from production_app.services.ingest import IngestService
 
 
@@ -11,6 +12,27 @@ class FakeReadingRepository:
 
     def add_many(self, readings: Sequence[Reading]) -> None:
         self.readings.extend(readings)
+
+    def get_summary(self) -> ReadingSummary:
+        total = len(self.readings)
+        if total == 0:
+            return ReadingSummary(total=0, average=None, latest=None)
+        avg = sum(r.value for r in self.readings) / total
+        latest = self.readings[-1].value
+        return ReadingSummary(total=total, average=avg, latest=latest)
+
+    def list_page(
+        self,
+        *,
+        asset_code: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> ReadingPage:
+        items = self.readings
+        if asset_code is not None:
+            items = [r for r in items if r.asset_code == asset_code]
+        page_items = items[offset : offset + limit]
+        return ReadingPage(items=page_items, total=len(items))
 
 
 def test_parse_readings_deduplicates_rows(tmp_path: Path) -> None:

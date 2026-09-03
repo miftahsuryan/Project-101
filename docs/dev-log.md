@@ -839,3 +839,53 @@ npm run lint
 npx tsc --noEmit --incremental false
 npm run build
 ```
+
+### Next step
+
+D15 membangun seed data deterministik dan tabular baseline untuk deteksi risiko kegagalan mesin.
+
+## D15 - Tabular ML baseline and data seed
+
+### Objective
+
+Membangun dataset seed deterministik dan rule-based baseline untuk risiko kegagalan mesin dari dataset AI4I 2020 Predictive Maintenance sebagai pembanding awal sebelum model machine learning terkalibrasi.
+
+### Decisions
+
+- Menggunakan dataset industri publik `data/ai4i2020.csv` (10,000 records).
+- Memisahkan identitas mesin (`UDI`, `Product ID`, `Type`) dari fitur numerik sensor (`Air temperature`, `Process temperature`, `Rotational speed`, `Torque`, `Tool wear`).
+- Menggunakan deterministic heuristic formula (`baseline-v1`) tanpa dependensi framework external.
+- Menyediakan perbandingan kuantitatif terhadap Naive Majority Baseline (Dummy Class 0).
+- Membangun script generator seed deterministik (`scripts/seed_data.py`) yang menghasilkan subset representatif (mesin normal dan mesin berisiko) ke dalam CSV dan database.
+
+### Implemented
+
+- Service `RiskBaselineService` pada `src/production_app/services/risk_baseline.py`.
+- Script evaluasi metrik `scripts/evaluate_baseline.py` dengan perbandingan Naive vs Baseline-v1 serta evaluasi split 80/20 train/test.
+- Script data seed `scripts/seed_data.py` untuk pembuatan `data/seed_assets.csv` dan `data/seed_readings.csv`.
+- Unit tests `tests/services/test_risk_baseline.py` dan `tests/test_seed_data.py`.
+- Dokumentasi tabular baseline dan metrik pada `docs/ml-baseline.md`.
+
+### Evaluation Summary
+
+| Model / Split | Total Rows | Accuracy | Precision | Recall | F1-Score | TP | FP | FN | TN |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Naive (Dummy Class 0)** | 10,000 | 96.61% | 0.00% | 0.00% | 0.0000 | 0 | 0 | 339 | 9,661 |
+| **Baseline-v1 (Full)** | 10,000 | 96.98% | 79.37% | 14.75% | 0.2488 | 50 | 13 | 289 | 9,648 |
+| **Baseline-v1 (Train 80%)** | 8,000 | 96.65% | 84.78% | 13.00% | 0.2254 | 39 | 7 | 261 | 7,693 |
+| **Baseline-v1 (Test 20%)** | 2,000 | 98.30% | 64.71% | 28.21% | 0.3929 | 11 | 6 | 28 | 1,955 |
+
+### Verification
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/evaluate_baseline.py
+PYTHONPATH=src .venv/bin/python scripts/seed_data.py
+.venv/bin/python -m pytest tests/services/test_risk_baseline.py tests/test_seed_data.py -q
+.venv/bin/python -m ruff check src tests scripts
+.venv/bin/python -m mypy src tests scripts
+```
+
+### Next step
+
+D16 membungkus baseline ke dalam risk service terintegrasi API dan menyusun evidence index portofolio recruiter.
+
