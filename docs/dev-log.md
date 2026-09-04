@@ -888,4 +888,4 @@ PYTHONPATH=src .venv/bin/python scripts/seed_data.py
 ### Next step
 
 D16 membungkus baseline ke dalam risk service terintegrasi API dan menyusun evidence index portofolio recruiter.
-
+,
